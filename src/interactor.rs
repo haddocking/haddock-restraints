@@ -1,43 +1,22 @@
+use serde::Deserialize;
 use std::collections::HashSet;
 
-#[derive(Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Interactor {
     id: u16,
     chain: String,
     active: HashSet<i16>,
     passive: HashSet<i16>,
-    target: Vec<u16>,
+    target: HashSet<u16>,
 }
 
 impl Interactor {
-    pub fn new(
-        id: u16,
-        chain: &str,
-        active: Vec<i16>,
-        passive: Vec<i16>,
-        target: Vec<u16>,
-    ) -> Self {
-        Interactor {
-            id,
-            chain: chain.to_string(),
-            active: active.into_iter().collect(),
-            passive: passive.into_iter().collect(),
-            target,
-        }
-    }
-
     pub fn is_valid(&self) -> Result<bool, &str> {
-        if self.active.is_empty() {
-            return Err("Active residues are empty");
-        }
-        if self.passive.is_empty() {
-            return Err("Passive residues are empty");
-        }
         if self.target.is_empty() {
             return Err("Target residues are empty");
         }
         if self.active.intersection(&self.passive).next().is_some() {
-            return Err("Active and passive selections contain one or more of the same residues");
+            return Err("Active/Passive selections overlap");
         }
         Ok(true)
     }
@@ -58,7 +37,44 @@ impl Interactor {
         &self.passive
     }
 
-    pub fn target(&self) -> &Vec<u16> {
+    pub fn target(&self) -> &HashSet<u16> {
         &self.target
     }
+
+    pub fn create_block(&self, target_res: Vec<(&str, &i16)>) -> String {
+        let mut block = String::new();
+        for resnum in self.active() {
+            let assign_line = format!(
+                "assign ( resid {} and segid {} )\n       (\n",
+                resnum,
+                self.chain()
+            );
+
+            let res_lines: Vec<String> = target_res
+                .iter()
+                .enumerate()
+                .map(|(index, res)| {
+                    let mut res_line = format!("        ( resid {}  and segid {})\n", res.1, res.0);
+                    if index != target_res.len() - 1 {
+                        res_line.push_str("     or\n");
+                    }
+                    res_line
+                })
+                .collect();
+
+            block.push_str(&assign_line);
+            block.push_str(&res_lines.join(""));
+            block.push_str("       )\n");
+        }
+        block
+    }
+}
+
+pub fn collect_resnums(interactors: Vec<&Interactor>) -> Vec<(&str, &i16)> {
+    let mut resnums = Vec::<(&str, &i16)>::new();
+    for interactor in interactors {
+        resnums.extend(interactor.active().iter().map(|x| (interactor.chain(), x)));
+        resnums.extend(interactor.passive().iter().map(|x| (interactor.chain(), x)));
+    }
+    resnums
 }

@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "chain": "A",
+    "active": [
+      31,
+      32
+    ],
+    "passive": [],
+    "target": [
+      2
+    ]
+  },
+  {
+    "id": 2,
+    "chain": "B",
+    "active": [
+      72,
+      73
+    ],
+    "passive": [],
+    "target": [
+      1
+    ]
+  }
+]
