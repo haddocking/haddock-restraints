@@ -6,7 +6,7 @@ A standalone command-line application to generate restraints to be used in HADDO
 
 ## Planned features
 
-- Generate `.tbl` filed
+- Generate `.tbl` files
 - Filter out residues that are not accessible
 - Define passive residues based on surface accessibility
 - Generate _true-interface_ restraints for benchmarking
