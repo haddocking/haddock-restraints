@@ -9,9 +9,9 @@ A standalone command-line application to generate restraints to be used in HADDO
 - [x] Define passive residues around active ones (`passive_from_active`)
 - [x] Support for N interactors; 2-body, 3-body, 4-body, etc
 - [x] Support for multiple interaction sites in the same interactor
-- [ ] Filter out active residues that are not accessible
 - [X] Generate _true-interface_ restraints for benchmarking
-- [ ] Generate random-restraints
+- [ ] Filter out active residues that are not accessible
+- [ ] ~Generate random-restraints~ done via CNS
 - [ ] Create unambiguous restraints to keep molecules together during docking
 
 ## Usage
