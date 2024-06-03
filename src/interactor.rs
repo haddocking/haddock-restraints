@@ -17,6 +17,19 @@ pub struct Interactor {
 
 #[allow(clippy::too_many_arguments)]
 impl Interactor {
+    pub fn new(id: u16) -> Self {
+        Interactor {
+            id,
+            chain: String::new(),
+            active: HashSet::new(),
+            passive: HashSet::new(),
+            target: HashSet::new(),
+            structure: None,
+            passive_from_active: None,
+            surface_as_passive: None,
+        }
+    }
+
     pub fn is_valid(&self) -> Result<bool, &str> {
         if self.target.is_empty() {
             return Err("Target residues are empty");
@@ -104,12 +117,24 @@ impl Interactor {
         self.structure = Some(structure.to_string());
     }
 
+    pub fn set_chain(&mut self, chain: &str) {
+        self.chain = chain.to_string();
+    }
+
+    pub fn set_active(&mut self, active: Vec<i16>) {
+        self.active = active.into_iter().collect();
+    }
+
     pub fn passive_from_active(&self) -> bool {
         self.passive_from_active.unwrap_or(false)
     }
 
     pub fn surface_as_passive(&self) -> bool {
         self.surface_as_passive.unwrap_or(false)
+    }
+
+    pub fn add_target(&mut self, target: u16) {
+        self.target.insert(target);
     }
 
     pub fn create_block(&self, target_res: Vec<(&str, &i16)>) -> String {

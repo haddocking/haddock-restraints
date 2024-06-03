@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use kd_tree::KdTree;
 use pdbtbx::Residue;
@@ -72,4 +72,65 @@ pub fn get_residues(pdb: &pdbtbx::PDB, target: Vec<isize>) -> Vec<&Residue> {
         }
     }
     result
+}
+
+pub fn get_true_interface(pdb: &pdbtbx::PDB, cutoff: f64) -> HashMap<String, HashSet<isize>> {
+    let mut true_interface: HashMap<String, HashSet<isize>> = HashMap::new();
+    for chain_i in pdb.chains() {
+        for chain_j in pdb.chains() {
+            if chain_i.id() == chain_j.id() {
+                continue;
+            }
+            for res_i in chain_i.residues() {
+                for res_j in chain_j.residues() {
+                    // Check if any of the atoms are touching each other
+                    for atom_i in res_i.atoms() {
+                        for atom_j in res_j.atoms() {
+                            let distance = atom_i.distance(atom_j);
+                            if distance < cutoff {
+                                true_interface
+                                    .entry(chain_i.id().to_string())
+                                    .or_default()
+                                    .insert(res_i.serial_number());
+                                true_interface
+                                    .entry(chain_j.id().to_string())
+                                    .or_default()
+                                    .insert(res_j.serial_number());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    true_interface
+}
+
+pub fn get_chains_in_contact(pdb: &pdbtbx::PDB, cutoff: f64) -> HashSet<(String, String)> {
+    let mut chains_in_contact: HashSet<(String, String)> = HashSet::new();
+
+    for chain_i in pdb.chains() {
+        for chain_j in pdb.chains() {
+            if chain_i.id() == chain_j.id() {
+                continue;
+            }
+            for res_i in chain_i.residues() {
+                for res_j in chain_j.residues() {
+                    // Check if any of the atoms are touching each other
+                    for atom_i in res_i.atoms() {
+                        for atom_j in res_j.atoms() {
+                            let distance = atom_i.distance(atom_j);
+                            if distance < cutoff {
+                                chains_in_contact
+                                    .insert((chain_i.id().to_string(), chain_j.id().to_string()));
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    chains_in_contact
 }

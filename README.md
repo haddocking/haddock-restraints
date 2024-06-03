@@ -6,11 +6,11 @@ A standalone command-line application to generate restraints to be used in HADDO
 
 - [x] Generate `.tbl` files from an input file
 - [x] Define passive residues based on surface accessibility (`surface_as_passive`)
-- [x] Define passive residues around active ones (`passive_from_active`) 
+- [x] Define passive residues around active ones (`passive_from_active`)
 - [x] Support for N interactors; 2-body, 3-body, 4-body, etc
 - [x] Support for multiple interaction sites in the same interactor
 - [ ] Filter out active residues that are not accessible
-- [ ] Generate _true-interface_ restraints for benchmarking
+- [X] Generate _true-interface_ restraints for benchmarking
 - [ ] Generate random-restraints
 - [ ] Create unambiguous restraints to keep molecules together during docking
 
@@ -32,11 +32,63 @@ cp target/release/haddock-restraints .
 ### Execute
 
 ```bash
-./haddock-restraints examples/restraints.json
+$ ./haddock-restraints -h
+A tool to process different input files
+
+Usage: haddock-restraints <COMMAND>
+
+Commands:
+  tbl   Generate TBL file from input file
+  ti    Generate true-interface restraints from a PDB file
+  help  Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
 ```
 
-### Input
 
+### `ti` command
+
+```bash
+$ ./haddock-restraints ti -h
+Generate true-interface restraints from a PDB file
+
+Usage: haddock-restraints ti <INPUT> <CUTOFF>
+
+Arguments:
+  <INPUT>   PDB file
+  <CUTOFF>  Cutoff distance for interface residues
+
+Options:
+  -h, --help  Print help
+```
+
+Example:
+
+```bash
+$ ./haddock-restraints ti examples/2oob.pdb 5.0 > ti.tbl
+```
+
+### `tbl` command
+
+```bash
+$ ./haddock-restraints tbl -h
+Generate TBL file from input file
+
+Usage: haddock-restraints tbl <INPUT>
+
+Arguments:
+  <INPUT>  Input file
+
+Options:
+  -h, --help  Print help
+```
+
+Example:
+
+```bash
+./haddock-restraints tbl examples/restraints.json > ambig.tbl
+```
 Check the `examples/` folder for examples of restraint files.
 
 The mandatory fields are:

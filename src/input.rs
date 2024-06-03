@@ -9,11 +9,3 @@ pub fn read_json_file(file_path: &str) -> Result<Vec<Interactor>, Box<dyn std::e
 
     Ok(data)
 }
-
-pub fn read_args() -> Result<String, Box<dyn std::error::Error>> {
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 {
-        return Err("Please provide a file path".into());
-    }
-    Ok(args[1].clone())
-}
