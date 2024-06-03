@@ -1,10 +1,18 @@
 # haddock-restraints
 
-🚧 🚧 🚧
-
 A standalone command-line application to generate restraints to be used in HADDOCK.
 
-🚧 🚧 🚧
+## Planned features
+
+- [x] Generate `.tbl` files from an input file
+- [x] Define passive residues based on surface accessibility (`surface_as_passive`)
+- [x] Define passive residues around active ones (`passive_from_active`) 
+- [x] Support for N interactors; 2-body, 3-body, 4-body, etc
+- [x] Support for multiple interaction sites in the same interactor
+- [ ] Filter out active residues that are not accessible
+- [ ] Generate _true-interface_ restraints for benchmarking
+- [ ] Generate random-restraints
+- [ ] Create unambiguous restraints to keep molecules together during docking
 
 ## Usage
 
@@ -83,16 +91,6 @@ Optional fields are:
 ]
 ```
 
-
-## Planned features
-
-- [x] Generate `.tbl` files from an input file
-- Filter out residues that are not accessible
-- [x] Define passive residues based on surface accessibility
-- Generate _true-interface_ restraints for benchmarking
-- [x] Support for N interactors; 2-body, 3-body, 4-body, etc
-- [x] Support for multiple interaction sites in the same interactor
-- Generate random-restraints
 
 ## Troubleshooting
 
