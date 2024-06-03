@@ -3,24 +3,35 @@
     "id": 1,
     "chain": "A",
     "active": [
-      31,
-      32
+      934
     ],
     "passive": [],
+    "structure": "2oob.pdb",
     "target": [
       2
-    ]
+    ],
+    "passive_from_active": true
   },
   {
     "id": 2,
     "chain": "B",
     "active": [
-      72,
-      73
+      68
     ],
     "passive": [],
     "target": [
       1
     ]
+  },
+  {
+    "id": 3,
+    "chain": "B",
+    "active": [],
+    "passive": [],
+    "target": [
+      1
+    ],
+    "structure": "2oob.pdb",
+    "surface_as_passive": true
   }
 ]

@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
 use kd_tree::KdTree;
-use pdbtbx::{Atom, Residue};
+use pdbtbx::Residue;
 
 pub fn neighbor_search(
     pdb: pdbtbx::PDB,
     target_residues_numbers: Vec<&pdbtbx::Residue>,
     radius: f64,
-) -> HashSet<isize> {
+) -> Vec<isize> {
     let points: Vec<[f64; 3]> = pdb
         .atoms()
         .map(|atom| {
@@ -23,7 +23,7 @@ pub fn neighbor_search(
     // Find the coordinates of each target residue
     // let mut neighbors: Vec<&Atom> = Vec::new();
     let mut result: HashSet<isize> = HashSet::new();
-    for residue in target_residues_numbers {
+    for residue in &target_residues_numbers {
         let query_vec: Vec<[f64; 3]> = residue
             .atoms()
             .map(|atom| {
@@ -52,11 +52,19 @@ pub fn neighbor_search(
             }
         }
     }
+    // Remove the target residues from the result
+    for residue in target_residues_numbers {
+        result.remove(&residue.serial_number());
+    }
+
+    // Sort the result
+    let mut result: Vec<isize> = result.into_iter().collect();
+    result.sort();
+
     result
 }
 
 pub fn get_residues(pdb: &pdbtbx::PDB, target: Vec<isize>) -> Vec<&Residue> {
-    // Find the residues that have the target serial numbers
     let mut result: Vec<&Residue> = Vec::new();
     for residue in pdb.residues() {
         if target.contains(&residue.serial_number()) {

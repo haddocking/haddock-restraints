@@ -1,15 +1,21 @@
+use crate::sasa;
+use crate::structure;
 use serde::Deserialize;
 use std::collections::HashSet;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Interactor {
     id: u16,
     chain: String,
     active: HashSet<i16>,
-    passive: HashSet<i16>,
+    pub passive: HashSet<i16>,
     target: HashSet<u16>,
+    structure: Option<String>,
+    passive_from_active: Option<bool>,
+    surface_as_passive: Option<bool>,
 }
 
+#[allow(clippy::too_many_arguments)]
 impl Interactor {
     pub fn is_valid(&self) -> Result<bool, &str> {
         if self.target.is_empty() {
@@ -19,6 +25,52 @@ impl Interactor {
             return Err("Active/Passive selections overlap");
         }
         Ok(true)
+    }
+
+    pub fn set_passive_from_active(&mut self) {
+        match pdbtbx::open_pdb(
+            self.structure.clone().unwrap(),
+            pdbtbx::StrictnessLevel::Loose,
+        ) {
+            Ok((pdb, _warnings)) => {
+                let residues = structure::get_residues(
+                    &pdb,
+                    self.active.iter().map(|x| *x as isize).collect(),
+                );
+
+                let neighbors = structure::neighbor_search(pdb.clone(), residues, 5.0);
+
+                // Add these neighbors to the passive set
+                neighbors.iter().for_each(|x| {
+                    self.passive.insert(*x as i16);
+                });
+            }
+            Err(e) => {
+                panic!("Error opening PDB file: {:?}", e);
+            }
+        }
+    }
+
+    pub fn set_surface_as_passive(&mut self) {
+        match pdbtbx::open_pdb(
+            self.structure.clone().unwrap(),
+            pdbtbx::StrictnessLevel::Loose,
+        ) {
+            Ok((pdb, _warnings)) => {
+                let sasa = sasa::calculate_sasa(pdb.clone());
+
+                // Add these neighbors to the passive set
+                sasa.iter().for_each(|r| {
+                    // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
+                    if r.rel_sasa_total > 0.7 && r.chain == self.chain {
+                        self.passive.insert(r.residue.serial_number() as i16);
+                    }
+                });
+            }
+            Err(e) => {
+                panic!("Error opening PDB file: {:?}", e);
+            }
+        }
     }
 
     pub fn id(&self) -> u16 {
@@ -41,9 +93,35 @@ impl Interactor {
         &self.target
     }
 
+    pub fn structure(&self) -> &str {
+        match &self.structure {
+            Some(structure) => structure,
+            None => "",
+        }
+    }
+
+    pub fn set_structure(&mut self, structure: &str) {
+        self.structure = Some(structure.to_string());
+    }
+
+    pub fn passive_from_active(&self) -> bool {
+        self.passive_from_active.unwrap_or(false)
+    }
+
+    pub fn surface_as_passive(&self) -> bool {
+        self.surface_as_passive.unwrap_or(false)
+    }
+
     pub fn create_block(&self, target_res: Vec<(&str, &i16)>) -> String {
         let mut block = String::new();
-        for resnum in self.active() {
+        let mut _active: Vec<i16> = self.active().iter().cloned().collect();
+        _active.sort();
+
+        // Sort the target residues by residue number
+        let mut target_res: Vec<(&str, &i16)> = target_res.clone();
+        target_res.sort_by(|a, b| a.1.cmp(b.1));
+
+        for resnum in _active {
             let assign_line = format!(
                 "assign ( resid {} and segid {} )\n       (\n",
                 resnum,

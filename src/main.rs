@@ -1,36 +1,41 @@
 mod air;
 mod interactor;
 mod io;
-mod pdb;
-// mod sasa;
+mod sasa;
+mod structure;
 
 use air::Air;
 use interactor::Interactor;
-use pdbtbx::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let restraints_file = io::read_args()?;
 
-    let interactors = io::read_json_file(&restraints_file).unwrap();
+    let mut interactors = io::read_json_file(&restraints_file).unwrap();
+
+    let wd = std::path::Path::new(restraints_file.as_str())
+        .parent()
+        .unwrap()
+        .to_str()
+        .unwrap();
+
+    interactors.iter_mut().for_each(|interactor| {
+        if !interactor.structure().is_empty() {
+            interactor.set_structure(format!("{}/{}", wd, interactor.structure()).as_str());
+
+            if interactor.passive_from_active() {
+                interactor.set_passive_from_active();
+            }
+
+            if interactor.surface_as_passive() {
+                interactor.set_surface_as_passive();
+            }
+        }
+    });
 
     let air = Air::new(interactors);
 
     let _tbl = air.gen_tbl()?;
-
-    let (pdbtbx_struct, _errors) = pdbtbx::open(
-        "/home/rodrigo/repos/haddock-restraints/src/data/1crn.pdb",
-        StrictnessLevel::Loose,
-    )
-    .unwrap();
-
-    // Find what are the neighbours of the active residues
-
-    let target_res = pdb::get_residues(&pdbtbx_struct, vec![36]);
-    let neighbors = pdb::neighbor_search(pdbtbx_struct.clone(), target_res, 5.0);
-
-    println!("{:?}", neighbors);
-
-    // let res_w_sasa = sasa::calculate_sasa(pdbtbx_struct);
+    println!("{}", _tbl);
 
     Ok(())
 }

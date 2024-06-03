@@ -21,6 +21,9 @@ impl Air {
         let mut tbl = String::new();
 
         for (i, interactor) in self.0.iter().enumerate() {
+            // println!("# {:?} ", interactor.id());
+            // println!("Active: {:?} ", interactor.active());
+            // println!("Passive: {:?} ", interactor.passive());
             match interactor.is_valid() {
                 Ok(_) => (),
                 Err(err) => {

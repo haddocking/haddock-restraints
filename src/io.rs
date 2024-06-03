@@ -6,6 +6,7 @@ pub fn read_json_file(file_path: &str) -> Result<Vec<Interactor>, Box<dyn std::e
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
     let data: Vec<Interactor> = serde_json::from_reader(reader)?;
+
     Ok(data)
 }
 
