@@ -16,24 +16,17 @@ A standalone command-line application to generate restraints to be used in HADDO
 
 ## Usage
 
-### Clone
+### Install
 
 ```bash
-git clone https://github.com/rvhonorato/haddock-restraints.git && cd haddock-restraints
-```
-
-### Build
-
-```bash
-cargo build --release
-cp target/release/haddock-restraints .
+cargo install haddock-restraints
 ```
 
 ### Execute
 
 ```bash
-$ ./haddock-restraints -h
-A tool to process different input files
+$ haddock-restraints -h
+Generate restraints to be used in HADDOCK
 
 Usage: haddock-restraints <COMMAND>
 
@@ -43,7 +36,8 @@ Commands:
   help  Print this message or the help of the given subcommand(s)
 
 Options:
-  -h, --help  Print help
+  -h, --help     Print help
+  -V, --version  Print version
 ```
 
 
@@ -89,7 +83,7 @@ Example:
 ```bash
 ./haddock-restraints tbl examples/restraints.json > ambig.tbl
 ```
-Check the `examples/` folder for examples of restraint files.
+Check the [examples](https://github.com/rvhonorato/haddock-restraints/tree/main/examples) folder for examples of restraint files.
 
 The mandatory fields are:
 - `id`: an integer that identifies the interactor
