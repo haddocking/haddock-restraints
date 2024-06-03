@@ -10,8 +10,8 @@ keywords = [
   "haddock",
   "restraints",
   "bioinformatics",
-  "structural biology",
-  "protein-protein docking",
+  "structural-biology",
+  "protein-docking",
 ]
 categories = [
   "science::bioinformatics",
