@@ -2,8 +2,24 @@
 name = "haddock-restraints"
 version = "0.1.0"
 edition = "2021"
+description = "Generate restraints to be used in HADDOCK"
+license = "MIT"
+repository = "https://github.com/rvhonorato/haddock-restraints"
+authors = ["Rodrigo V. Honorato <r.vargashonorato@uu.nl>"]
+keywords = [
+  "haddock",
+  "restraints",
+  "bioinformatics",
+  "structural biology",
+  "protein-protein docking",
+]
+categories = [
+  "science::bioinformatics",
+  "science",
+  "structural biology",
+  "protein-protein docking",
+]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 freesasa-rs = "0.1.3"
