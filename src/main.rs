@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "haddock-restraints")]
-#[command(about = "A tool to process different input files", long_about = None)]
+#[command(about = "Generate restraints to be used in HADDOCK", long_about = None, version)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
