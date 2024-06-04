@@ -14,6 +14,7 @@ A standalone command-line application to generate restraints to be used in HADDO
 - [x] Support for N interactors; 2-body, 3-body, 4-body, etc
 - [x] Support for multiple interaction sites in the same interactor
 - [X] Generate _true-interface_ restraints for benchmarking
+- [ ] Specify atom subsets
 - [ ] Filter out active residues that are not accessible
 - [ ] ~Generate random-restraints~ done via CNS
 - [ ] Create unambiguous restraints to keep molecules together during docking
