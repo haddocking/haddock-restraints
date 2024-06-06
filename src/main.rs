@@ -1,7 +1,7 @@
 mod air;
 mod input;
 mod interactor;
-mod sasa;
+// mod sasa;
 mod structure;
 use air::Air;
 use interactor::Interactor;
@@ -31,6 +31,11 @@ enum Commands {
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
     },
+    #[command(about = "Generate Unambiguous restraints to keep molecules together during docking")]
+    Restraint {
+        #[arg(help = "PDB file")]
+        input: String,
+    },
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -42,6 +47,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Ti { input, cutoff } => {
             let _ = true_interface(input, cutoff);
+        }
+        Commands::Restraint { input } => {
+            let _ = restraint_bodies(input);
         }
     }
 
@@ -120,6 +128,53 @@ fn true_interface(input_pdb: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
     });
 
     // Make the restraints
+    let air = Air::new(interactors);
+    let tbl = air.gen_tbl().unwrap();
+
+    println!("{}", tbl);
+
+    Ok(())
+}
+
+fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
+    // Read PDB file
+    let pdb = match pdbtbx::open_pdb(input_file, pdbtbx::StrictnessLevel::Loose) {
+        Ok((pdb, _warnings)) => pdb,
+        Err(e) => {
+            panic!("Error opening PDB file: {:?}", e);
+        }
+    };
+
+    // Find in-contiguous chains
+    let gaps = structure::find_structural_gaps(&pdb);
+    println!("Gaps: {:?}", gaps);
+
+    // Create the interactors
+    let mut interactors: Vec<Interactor> = Vec::new();
+    let mut counter = 0;
+    gaps.iter().for_each(|g| {
+        let (chain, res_i, res_j) = g;
+        let mut interactor_i = Interactor::new(counter);
+        counter += 1;
+        let mut interactor_j = Interactor::new(counter);
+        interactor_j.add_target(counter - 1);
+        interactor_i.add_target(counter);
+        counter += 1;
+
+        interactor_i.set_chain(chain);
+        interactor_i.set_active(vec![*res_i as i16]);
+
+        interactor_j.set_chain(chain);
+        interactor_j.set_passive(vec![*res_j as i16]);
+
+        interactors.push(interactor_i);
+        interactors.push(interactor_j);
+    });
+
+    // interactors.iter().for_each(|interactor| {
+    //     println!("{:?}", interactor);
+    // });
+
     let air = Air::new(interactors);
     let tbl = air.gen_tbl().unwrap();
 

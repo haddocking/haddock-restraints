@@ -1,4 +1,4 @@
-use crate::sasa;
+// use crate::sasa;
 use crate::structure;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -65,25 +65,25 @@ impl Interactor {
     }
 
     pub fn set_surface_as_passive(&mut self) {
-        match pdbtbx::open_pdb(
-            self.structure.clone().unwrap(),
-            pdbtbx::StrictnessLevel::Loose,
-        ) {
-            Ok((pdb, _warnings)) => {
-                let sasa = sasa::calculate_sasa(pdb.clone());
+        // match pdbtbx::open_pdb(
+        //     self.structure.clone().unwrap(),
+        //     pdbtbx::StrictnessLevel::Loose,
+        // ) {
+        //     Ok((pdb, _warnings)) => {
+        //         let sasa = sasa::calculate_sasa(pdb.clone());
 
-                // Add these neighbors to the passive set
-                sasa.iter().for_each(|r| {
-                    // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
-                    if r.rel_sasa_total > 0.7 && r.chain == self.chain {
-                        self.passive.insert(r.residue.serial_number() as i16);
-                    }
-                });
-            }
-            Err(e) => {
-                panic!("Error opening PDB file: {:?}", e);
-            }
-        }
+        //         // Add these neighbors to the passive set
+        //         sasa.iter().for_each(|r| {
+        //             // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
+        //             if r.rel_sasa_total > 0.7 && r.chain == self.chain {
+        //                 self.passive.insert(r.residue.serial_number() as i16);
+        //             }
+        //         });
+        //     }
+        //     Err(e) => {
+        //         panic!("Error opening PDB file: {:?}", e);
+        //     }
+        // }
     }
 
     pub fn id(&self) -> u16 {
@@ -125,6 +125,10 @@ impl Interactor {
         self.active = active.into_iter().collect();
     }
 
+    pub fn set_passive(&mut self, passive: Vec<i16>) {
+        self.passive = passive.into_iter().collect();
+    }
+
     pub fn passive_from_active(&self) -> bool {
         self.passive_from_active.unwrap_or(false)
     }
@@ -157,7 +161,7 @@ impl Interactor {
                 .iter()
                 .enumerate()
                 .map(|(index, res)| {
-                    let mut res_line = format!("        ( resid {}  and segid {})\n", res.1, res.0);
+                    let mut res_line = format!("        ( resid {} and segid {} )\n", res.1, res.0);
                     if index != target_res.len() - 1 {
                         res_line.push_str("     or\n");
                     }
@@ -167,7 +171,7 @@ impl Interactor {
 
             block.push_str(&assign_line);
             block.push_str(&res_lines.join(""));
-            block.push_str("       )\n");
+            block.push_str("       ) 2.0 2.0 0.0\n\n");
         }
         block
     }
