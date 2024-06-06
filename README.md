@@ -45,7 +45,6 @@ Options:
   -V, --version  Print version
 ```
 
-
 ### `ti` command
 
 ```bash
@@ -65,7 +64,7 @@ Options:
 Example:
 
 ```bash
-$ ./haddock-restraints ti examples/2oob.pdb 5.0 > ti.tbl
+./haddock-restraints ti examples/2oob.pdb 5.0 > ti.tbl
 ```
 
 ### `tbl` command
@@ -88,9 +87,11 @@ Example:
 ```bash
 ./haddock-restraints tbl examples/restraints.json > ambig.tbl
 ```
+
 Check the [examples](https://github.com/rvhonorato/haddock-restraints/tree/main/examples) folder for examples of restraint files.
 
 The mandatory fields are:
+
 - `id`: an integer that identifies the interactor
 - `chain`: the chain of the interactor
 - `active`: a list of residues that are active in the interaction
@@ -98,9 +99,10 @@ The mandatory fields are:
 - `target`: a list of integers that identifies the interactors that the current interactor interacts with
 
 Optional fields are:
+
 - `structure`: the PDB file that contains the structure of the interactor
-- `passive_from_active`: if true, the passive residues are defined based on the active residues (*requires structure*)
-- `surface_as_passive`: if true, the passive residues are defined based on the surface accessibility of the residues (*requires structure*)
+- `passive_from_active`: if true, the passive residues are defined based on the active residues (_requires structure_)
+- `surface_as_passive`: if true, the passive residues are defined based on the surface accessibility of the residues (_requires structure_)
 
 ```json
 [
@@ -142,10 +144,9 @@ Optional fields are:
 ]
 ```
 
-
 ## Troubleshooting
 
-###  `/usr/bin/ld: cannot find -lc++: No such file or directory`
+### `/usr/bin/ld: cannot find -lc++: No such file or directory`
 
 ```bash
 sudo apt-get install libc++-dev libc++abi-dev
