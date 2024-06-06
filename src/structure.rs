@@ -134,3 +134,33 @@ pub fn get_chains_in_contact(pdb: &pdbtbx::PDB, cutoff: f64) -> HashSet<(String,
     }
     chains_in_contact
 }
+
+pub fn find_structural_gaps(pdb: &pdbtbx::PDB) -> HashSet<(&str, isize, isize)> {
+    // Check if the distance of a given atom to its next one is higher than 4A
+    let mut gaps: HashSet<(&str, isize, isize)> = HashSet::new();
+
+    // Get only the `CA` atoms
+    let mut ca_atoms: Vec<(&str, isize, &pdbtbx::Atom)> = Vec::new();
+    pdb.chains().for_each(|chain| {
+        chain.residues().for_each(|residue| {
+            residue.atoms().for_each(|atom| {
+                if atom.name() == "CA" {
+                    ca_atoms.push((chain.id(), residue.serial_number(), atom));
+                }
+            });
+        });
+    });
+    for (i, j) in ca_atoms.iter().zip(ca_atoms.iter().skip(1)) {
+        let (chain_i, res_i, atom_i) = i;
+        let (chain_j, res_j, atom_j) = j;
+        if chain_i != chain_j {
+            continue;
+        }
+        let distance = atom_i.distance(atom_j);
+        if distance > 4.0 {
+            gaps.insert((chain_i.to_owned(), res_i.to_owned(), res_j.to_owned()));
+        }
+    }
+
+    gaps
+}
