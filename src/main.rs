@@ -5,7 +5,7 @@ mod interactor;
 mod structure;
 use air::Air;
 use interactor::Interactor;
-use std::error::Error;
+use std::{error::Error, vec};
 
 use clap::{Parser, Subcommand};
 
@@ -153,7 +153,7 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
     let mut interactors: Vec<Interactor> = Vec::new();
     let mut counter = 0;
     gaps.iter().for_each(|g| {
-        let (chain, res_i, res_j) = g;
+        // let (chain, res_i, res_j) = g;
         let mut interactor_i = Interactor::new(counter);
         counter += 1;
         let mut interactor_j = Interactor::new(counter);
@@ -161,11 +161,16 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
         interactor_i.add_target(counter);
         counter += 1;
 
-        interactor_i.set_chain(chain);
-        interactor_i.set_active(vec![*res_i as i16]);
+        interactor_i.set_chain(g.chain.as_str());
+        interactor_i.set_active(vec![g.res_i as i16]);
+        interactor_i.set_active_atoms(vec![g.atom.clone()]);
+        interactor_i.set_passive_atoms(vec![g.atom.clone()]);
+        interactor_i.set_target_distance(g.distance);
+        interactor_i.set_lower_margin(0.0);
+        interactor_i.set_upper_margin(0.0);
 
-        interactor_j.set_chain(chain);
-        interactor_j.set_passive(vec![*res_j as i16]);
+        interactor_j.set_chain(g.chain.as_str());
+        interactor_j.set_passive(vec![g.res_j as i16]);
 
         interactors.push(interactor_i);
         interactors.push(interactor_j);

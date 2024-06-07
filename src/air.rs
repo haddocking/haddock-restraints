@@ -20,7 +20,7 @@ impl Air {
     pub fn gen_tbl(&self) -> Result<String, &str> {
         let mut tbl = String::new();
 
-        for (i, interactor) in self.0.iter().enumerate() {
+        for interactor in self.0.iter() {
             // println!("# {:?} ", interactor.id());
             // println!("Active: {:?} ", interactor.active());
             // println!("Passive: {:?} ", interactor.passive());
@@ -38,18 +38,21 @@ impl Air {
                 continue;
             }
 
-            let header = append_header(i);
-            tbl.push_str(&header);
+            // let header = append_header(i);
+            // tbl.push_str(&header);
 
             let target_res = interactor::collect_resnums(partners);
+            println!("------ {:?}", interactor);
+            println!("------ {:?}", target_res);
             let block = interactor.create_block(target_res);
+            println!("#### {:?}", block);
             tbl.push_str(&block);
         }
         Ok(tbl)
     }
 }
 
-fn append_header(index: usize) -> String {
+fn _append_header(index: usize) -> String {
     format!(
         "!========================================!\n\
          ! HADDOCK AIR restraints for selection {} !\n\

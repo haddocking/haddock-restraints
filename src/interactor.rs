@@ -8,8 +8,13 @@ pub struct Interactor {
     id: u16,
     chain: String,
     active: HashSet<i16>,
+    active_atoms: Option<Vec<String>>,
     pub passive: HashSet<i16>,
+    passive_atoms: Option<Vec<String>>,
     target: HashSet<u16>,
+    target_distance: Option<f64>,
+    lower_margin: Option<f64>,
+    upper_margin: Option<f64>,
     structure: Option<String>,
     passive_from_active: Option<bool>,
     surface_as_passive: Option<bool>,
@@ -27,6 +32,11 @@ impl Interactor {
             structure: None,
             passive_from_active: None,
             surface_as_passive: None,
+            active_atoms: None,
+            passive_atoms: None,
+            target_distance: None,
+            lower_margin: None,
+            upper_margin: None,
         }
     }
 
@@ -129,6 +139,18 @@ impl Interactor {
         self.passive = passive.into_iter().collect();
     }
 
+    pub fn set_target_distance(&mut self, distance: f64) {
+        self.target_distance = Some(distance);
+    }
+
+    pub fn set_lower_margin(&mut self, margin: f64) {
+        self.lower_margin = Some(margin);
+    }
+
+    pub fn set_upper_margin(&mut self, margin: f64) {
+        self.upper_margin = Some(margin);
+    }
+
     pub fn passive_from_active(&self) -> bool {
         self.passive_from_active.unwrap_or(false)
     }
@@ -139,6 +161,14 @@ impl Interactor {
 
     pub fn add_target(&mut self, target: u16) {
         self.target.insert(target);
+    }
+
+    pub fn set_active_atoms(&mut self, atoms: Vec<String>) {
+        self.active_atoms = Some(atoms);
+    }
+
+    pub fn set_passive_atoms(&mut self, atoms: Vec<String>) {
+        self.passive_atoms = Some(atoms);
     }
 
     pub fn create_block(&self, target_res: Vec<(&str, &i16)>) -> String {
@@ -154,33 +184,43 @@ impl Interactor {
         let multiline = target_res.len() > 1;
 
         for resnum in _active {
+            let atom_str = format_atom_string(&self.active_atoms);
+            let mut assign_str = format!(
+                "assign ( resid {} and segid {}{} )",
+                resnum,
+                self.chain(),
+                atom_str
+            );
+
             if multiline {
-                block.push_str(
-                    format!(
-                        "assign ( resid {} and segid {} )\n       (\n",
-                        resnum,
-                        self.chain()
-                    )
-                    .as_str(),
-                );
-            } else {
-                block.push_str(
-                    format!("assign ( resid {} and segid {} )", resnum, self.chain()).as_str(),
-                )
+                assign_str += "\n       (\n";
             }
+
+            block.push_str(assign_str.as_str());
 
             let res_lines: Vec<String> = target_res
                 .iter()
                 .enumerate()
                 .map(|(index, res)| {
+                    let passive_atom_str = format_atom_string(&self.passive_atoms);
+
                     let mut res_line = String::new();
                     if multiline {
                         res_line.push_str(
-                            format!("        ( resid {} and segid {} )\n", res.1, res.0).as_str(),
+                            format!(
+                                "        ( resid {} and segid {}{} )\n",
+                                res.1, res.0, passive_atom_str
+                            )
+                            .as_str(),
                         );
                     } else {
-                        res_line
-                            .push_str(format!(" ( resid {} and segid {} )", res.1, res.0).as_str());
+                        res_line.push_str(
+                            format!(
+                                " ( resid {} and segid {}{} )",
+                                res.1, res.0, passive_atom_str
+                            )
+                            .as_str(),
+                        );
                     }
 
                     if index != target_res.len() - 1 {
@@ -191,10 +231,16 @@ impl Interactor {
                 .collect();
 
             block.push_str(&res_lines.join(""));
+
+            let distance_string = format_distance_string(
+                &self.target_distance,
+                &self.lower_margin,
+                &self.upper_margin,
+            );
             if multiline {
-                block.push_str("       ) 2.0 2.0 0.0\n\n");
+                block.push_str(format!("       ) {}\n\n", distance_string).as_str());
             } else {
-                block.push_str(" 2.0 2.0 0.0\n\n")
+                block.push_str(format!(" {}\n\n", distance_string).as_str())
             }
         }
         block
@@ -209,6 +255,42 @@ pub fn collect_resnums(interactors: Vec<&Interactor>) -> Vec<(&str, &i16)> {
     }
     resnums
 }
+
+pub fn format_distance_string(
+    target: &Option<f64>,
+    lower: &Option<f64>,
+    upper: &Option<f64>,
+) -> String {
+    let target = match target {
+        Some(target) => target,
+        None => &2.0,
+    };
+
+    let lower = match lower {
+        Some(lower) => lower,
+        None => &2.0,
+    };
+
+    let upper = match upper {
+        Some(upper) => upper,
+        None => &0.0,
+    };
+
+    format!("{:.1} {:.1} {:.1}", target, lower, upper)
+}
+
+pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
+    // println!("Atoms: {:?}", atoms);
+    match atoms {
+        Some(atoms) => {
+            let atoms: Vec<String> = atoms.iter().map(|x| format!(" and name {}", x)).collect();
+            atoms.join("")
+        }
+        None => "".to_string(),
+    }
+}
+
+// pub fn format_oneline_assign_string()
 
 #[cfg(test)]
 mod tests {
@@ -237,6 +319,82 @@ mod tests {
         let observed = interactor.create_block(vec![("B", &2)]);
 
         let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_active_atoms() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_active_atoms(vec!["CA".to_string()]);
+
+        let observed = interactor.create_block(vec![("B", &2)]);
+
+        let block =
+            "assign ( resid 1 and segid A and name CA ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_passive_atoms() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_passive_atoms(vec!["CA".to_string()]);
+
+        let observed = interactor.create_block(vec![("B", &2)]);
+
+        let block =
+            "assign ( resid 1 and segid A ) ( resid 2 and segid B and name CA ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_active_passive_atoms() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_active_atoms(vec!["CA".to_string()]);
+        interactor.set_passive_atoms(vec!["CB".to_string()]);
+
+        let observed = interactor.create_block(vec![("B", &2)]);
+
+        let block =
+            "assign ( resid 1 and segid A and name CA ) ( resid 2 and segid B and name CB ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_multiline_block_active_passive_atoms() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_active_atoms(vec!["CA".to_string()]);
+        interactor.set_passive_atoms(vec!["CB".to_string()]);
+
+        let observed = interactor.create_block(vec![("B", &2), ("B", &3)]);
+
+        let block = "assign ( resid 1 and segid A and name CA )\n       (\n        ( resid 2 and segid B and name CB )\n     or\n        ( resid 3 and segid B and name CB )\n       ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_with_distance() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_target_distance(5.0);
+        interactor.set_lower_margin(0.0);
+
+        let observed = interactor.create_block(vec![("B", &2)]);
+
+        let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 5.0 0.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
