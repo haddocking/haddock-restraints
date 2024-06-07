@@ -36,13 +36,13 @@ Generate restraints to be used in HADDOCK
 Usage: haddock-restraints <COMMAND>
 
 Commands:
-  tbl   Generate TBL file from input file
-  ti    Generate true-interface restraints from a PDB file
-  help  Print this message or the help of the given subcommand(s)
+  tbl        Generate TBL file from input file
+  ti         Generate true-interface restraints from a PDB file
+  restraint  Generate Unambiguous restraints to keep molecules together during docking
+  help       Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
-  -V, --version  Print version
 ```
 
 ### `ti` command
@@ -143,6 +143,30 @@ Optional fields are:
   }
 ]
 ```
+
+
+### `restraint` command
+
+```bash
+$ ./haddock-restraints restraint -h
+Generate Unambiguous restraints to keep molecules together during docking
+
+Usage: haddock-restraints restraint <INPUT>
+
+Arguments:
+  <INPUT>  PDB file
+
+Options:
+  -h, --help  Print help
+```
+
+Example:
+
+```bash
+./haddock-restraints restraint examples/2oob_w_gaps.pdb > unambiguous.tbl
+```
+
+***
 
 ## Troubleshooting
 
