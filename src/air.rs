@@ -42,10 +42,7 @@ impl Air {
             // tbl.push_str(&header);
 
             let target_res = interactor::collect_resnums(partners);
-            println!("------ {:?}", interactor);
-            println!("------ {:?}", target_res);
             let block = interactor.create_block(target_res);
-            println!("#### {:?}", block);
             tbl.push_str(&block);
         }
         Ok(tbl)
