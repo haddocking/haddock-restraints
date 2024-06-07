@@ -1,4 +1,4 @@
-// use crate::sasa;
+use crate::sasa;
 use crate::structure;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -75,25 +75,25 @@ impl Interactor {
     }
 
     pub fn set_surface_as_passive(&mut self) {
-        // match pdbtbx::open_pdb(
-        //     self.structure.clone().unwrap(),
-        //     pdbtbx::StrictnessLevel::Loose,
-        // ) {
-        //     Ok((pdb, _warnings)) => {
-        //         let sasa = sasa::calculate_sasa(pdb.clone());
+        match pdbtbx::open_pdb(
+            self.structure.clone().unwrap(),
+            pdbtbx::StrictnessLevel::Loose,
+        ) {
+            Ok((pdb, _warnings)) => {
+                let sasa = sasa::calculate_sasa(pdb.clone());
 
-        //         // Add these neighbors to the passive set
-        //         sasa.iter().for_each(|r| {
-        //             // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
-        //             if r.rel_sasa_total > 0.7 && r.chain == self.chain {
-        //                 self.passive.insert(r.residue.serial_number() as i16);
-        //             }
-        //         });
-        //     }
-        //     Err(e) => {
-        //         panic!("Error opening PDB file: {:?}", e);
-        //     }
-        // }
+                // Add these neighbors to the passive set
+                sasa.iter().for_each(|r| {
+                    // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
+                    if r.rel_sasa_total > 0.7 && r.chain == self.chain {
+                        self.passive.insert(r.residue.serial_number() as i16);
+                    }
+                });
+            }
+            Err(e) => {
+                panic!("Error opening PDB file: {:?}", e);
+            }
+        }
     }
 
     pub fn id(&self) -> u16 {
