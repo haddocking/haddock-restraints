@@ -150,18 +150,39 @@ impl Interactor {
         let mut target_res: Vec<(&str, &i16)> = target_res.clone();
         target_res.sort_by(|a, b| a.1.cmp(b.1));
 
+        // Check if need to use multiline separation
+        let multiline = target_res.len() > 1;
+
         for resnum in _active {
-            let assign_line = format!(
-                "assign ( resid {} and segid {} )\n       (\n",
-                resnum,
-                self.chain()
-            );
+            if multiline {
+                block.push_str(
+                    format!(
+                        "assign ( resid {} and segid {} )\n       (\n",
+                        resnum,
+                        self.chain()
+                    )
+                    .as_str(),
+                );
+            } else {
+                block.push_str(
+                    format!("assign ( resid {} and segid {} )", resnum, self.chain()).as_str(),
+                )
+            }
 
             let res_lines: Vec<String> = target_res
                 .iter()
                 .enumerate()
                 .map(|(index, res)| {
-                    let mut res_line = format!("        ( resid {} and segid {} )\n", res.1, res.0);
+                    let mut res_line = String::new();
+                    if multiline {
+                        res_line.push_str(
+                            format!("        ( resid {} and segid {} )\n", res.1, res.0).as_str(),
+                        );
+                    } else {
+                        res_line
+                            .push_str(format!(" ( resid {} and segid {} )", res.1, res.0).as_str());
+                    }
+
                     if index != target_res.len() - 1 {
                         res_line.push_str("     or\n");
                     }
@@ -169,9 +190,12 @@ impl Interactor {
                 })
                 .collect();
 
-            block.push_str(&assign_line);
             block.push_str(&res_lines.join(""));
-            block.push_str("       ) 2.0 2.0 0.0\n\n");
+            if multiline {
+                block.push_str("       ) 2.0 2.0 0.0\n\n");
+            } else {
+                block.push_str(" 2.0 2.0 0.0\n\n")
+            }
         }
         block
     }
@@ -184,4 +208,36 @@ pub fn collect_resnums(interactors: Vec<&Interactor>) -> Vec<(&str, &i16)> {
         resnums.extend(interactor.passive().iter().map(|x| (interactor.chain(), x)));
     }
     resnums
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::interactor::Interactor;
+
+    #[test]
+    fn test_create_block_multiline() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+
+        let observed = interactor.create_block(vec![("B", &2), ("B", &3)]);
+
+        let block = "assign ( resid 1 and segid A )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_oneline() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+
+        let observed = interactor.create_block(vec![("B", &2)]);
+
+        let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
 }
