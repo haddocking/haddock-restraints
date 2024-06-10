@@ -77,6 +77,10 @@ fn gen_tbl(input_file: &str) {
             if interactor.surface_as_passive() {
                 interactor.set_surface_as_passive();
             }
+
+            if interactor.filter_buried() {
+                interactor.remove_buried_residues();
+            }
         }
     });
 

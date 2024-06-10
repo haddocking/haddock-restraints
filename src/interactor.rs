@@ -18,6 +18,8 @@ pub struct Interactor {
     structure: Option<String>,
     passive_from_active: Option<bool>,
     surface_as_passive: Option<bool>,
+    filter_buried: Option<bool>,
+    filter_buried_cutoff: Option<f64>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -32,6 +34,8 @@ impl Interactor {
             structure: None,
             passive_from_active: None,
             surface_as_passive: None,
+            filter_buried: None,
+            filter_buried_cutoff: None,
             active_atoms: None,
             passive_atoms: None,
             target_distance: None,
@@ -87,6 +91,37 @@ impl Interactor {
                     // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
                     if r.rel_sasa_total > 0.7 && r.chain == self.chain {
                         self.passive.insert(r.residue.serial_number() as i16);
+                    }
+                });
+            }
+            Err(e) => {
+                panic!("Error opening PDB file: {:?}", e);
+            }
+        }
+    }
+
+    pub fn remove_buried_residues(&mut self) {
+        match pdbtbx::open_pdb(
+            self.structure.clone().unwrap(),
+            pdbtbx::StrictnessLevel::Loose,
+        ) {
+            Ok((pdb, _warnings)) => {
+                let sasa = sasa::calculate_sasa(pdb.clone());
+
+                let sasa_cutoff = self.filter_buried_cutoff.unwrap_or(0.7);
+
+                sasa.iter().for_each(|r| {
+                    // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
+                    if r.rel_sasa_total < sasa_cutoff && r.chain == self.chain {
+                        // This residue is not accessible, remove it from the passive and active sets
+                        self.passive.remove(&(r.residue.serial_number() as i16));
+                        self.active.remove(&(r.residue.serial_number() as i16));
+
+                        // println!(
+                        //     "Removing residue: {}:{}",
+                        //     r.chain,
+                        //     r.residue.serial_number() as i16
+                        // );
                     }
                 });
             }
@@ -157,6 +192,10 @@ impl Interactor {
 
     pub fn surface_as_passive(&self) -> bool {
         self.surface_as_passive.unwrap_or(false)
+    }
+
+    pub fn filter_buried(&self) -> bool {
+        self.filter_buried.unwrap_or(false)
     }
 
     pub fn add_target(&mut self, target: u16) {

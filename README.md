@@ -13,10 +13,10 @@ A standalone command-line application to generate restraints to be used in HADDO
 - [x] Define passive residues around active ones (`passive_from_active`)
 - [x] Support for N interactors; 2-body, 3-body, 4-body, etc
 - [x] Support for multiple interaction sites in the same interactor
-- [X] Generate _true-interface_ restraints for benchmarking
+- [x] Generate _true-interface_ restraints for benchmarking
 - [x] Create unambiguous restraints to keep molecules together during docking
+- [x] Filter out buried residues
 - [ ] Specify atom subsets
-- [ ] Filter out active residues that are not accessible
 - [ ] ~Generate random-restraints~ done via CNS
 
 ## Usage
@@ -103,6 +103,8 @@ Optional fields are:
 - `structure`: the PDB file that contains the structure of the interactor
 - `passive_from_active`: if true, the passive residues are defined based on the active residues (_requires structure_)
 - `surface_as_passive`: if true, the passive residues are defined based on the surface accessibility of the residues (_requires structure_)
+- `filter_buried`: if true, the buried residues are filtered out (_requires structure_)
+- `filter_buried_cutoff`: the cutoff to consider a residue as buried, default = 0.7 (_requires structure_)
 
 ```json
 [
@@ -110,14 +112,16 @@ Optional fields are:
     "id": 1,
     "chain": "A",
     "active": [
-      934
+      934,
+      939
     ],
     "passive": [],
     "structure": "2oob.pdb",
     "target": [
       2
     ],
-    "passive_from_active": true
+    "passive_from_active": true,
+    "filter_buried": true
   },
   {
     "id": 2,
@@ -143,7 +147,6 @@ Optional fields are:
   }
 ]
 ```
-
 
 ### `restraint` command
 

@@ -3,14 +3,16 @@
     "id": 1,
     "chain": "A",
     "active": [
-      934
+      934,
+      939
     ],
     "passive": [],
     "structure": "2oob.pdb",
     "target": [
       2
     ],
-    "passive_from_active": true
+    "passive_from_active": true,
+    "filter_buried": true
   },
   {
     "id": 2,
