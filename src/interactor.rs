@@ -1,4 +1,4 @@
-use crate::sasa;
+// use crate::sasa;
 use crate::structure;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -79,56 +79,56 @@ impl Interactor {
     }
 
     pub fn set_surface_as_passive(&mut self) {
-        match pdbtbx::open_pdb(
-            self.structure.clone().unwrap(),
-            pdbtbx::StrictnessLevel::Loose,
-        ) {
-            Ok((pdb, _warnings)) => {
-                let sasa = sasa::calculate_sasa(pdb.clone());
+        // match pdbtbx::open_pdb(
+        //     self.structure.clone().unwrap(),
+        //     pdbtbx::StrictnessLevel::Loose,
+        // ) {
+        //     Ok((pdb, _warnings)) => {
+        //         let sasa = sasa::calculate_sasa(pdb.clone());
 
-                // Add these neighbors to the passive set
-                sasa.iter().for_each(|r| {
-                    // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
-                    if r.rel_sasa_total > 0.7 && r.chain == self.chain {
-                        self.passive.insert(r.residue.serial_number() as i16);
-                    }
-                });
-            }
-            Err(e) => {
-                panic!("Error opening PDB file: {:?}", e);
-            }
-        }
+        //         // Add these neighbors to the passive set
+        //         sasa.iter().for_each(|r| {
+        //             // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
+        //             if r.rel_sasa_total > 0.7 && r.chain == self.chain {
+        //                 self.passive.insert(r.residue.serial_number() as i16);
+        //             }
+        //         });
+        //     }
+        //     Err(e) => {
+        //         panic!("Error opening PDB file: {:?}", e);
+        //     }
+        // }
     }
 
     pub fn remove_buried_residues(&mut self) {
-        match pdbtbx::open_pdb(
-            self.structure.clone().unwrap(),
-            pdbtbx::StrictnessLevel::Loose,
-        ) {
-            Ok((pdb, _warnings)) => {
-                let sasa = sasa::calculate_sasa(pdb.clone());
+        // match pdbtbx::open_pdb(
+        //     self.structure.clone().unwrap(),
+        //     pdbtbx::StrictnessLevel::Loose,
+        // ) {
+        //     Ok((pdb, _warnings)) => {
+        //         let sasa = sasa::calculate_sasa(pdb.clone());
 
-                let sasa_cutoff = self.filter_buried_cutoff.unwrap_or(0.7);
+        //         let sasa_cutoff = self.filter_buried_cutoff.unwrap_or(0.7);
 
-                sasa.iter().for_each(|r| {
-                    // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
-                    if r.rel_sasa_total < sasa_cutoff && r.chain == self.chain {
-                        // This residue is not accessible, remove it from the passive and active sets
-                        self.passive.remove(&(r.residue.serial_number() as i16));
-                        self.active.remove(&(r.residue.serial_number() as i16));
+        //         sasa.iter().for_each(|r| {
+        //             // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
+        //             if r.rel_sasa_total < sasa_cutoff && r.chain == self.chain {
+        //                 // This residue is not accessible, remove it from the passive and active sets
+        //                 self.passive.remove(&(r.residue.serial_number() as i16));
+        //                 self.active.remove(&(r.residue.serial_number() as i16));
 
-                        // println!(
-                        //     "Removing residue: {}:{}",
-                        //     r.chain,
-                        //     r.residue.serial_number() as i16
-                        // );
-                    }
-                });
-            }
-            Err(e) => {
-                panic!("Error opening PDB file: {:?}", e);
-            }
-        }
+        //                 // println!(
+        //                 //     "Removing residue: {}:{}",
+        //                 //     r.chain,
+        //                 //     r.residue.serial_number() as i16
+        //                 // );
+        //             }
+        //         });
+        //     }
+        //     Err(e) => {
+        //         panic!("Error opening PDB file: {:?}", e);
+        //     }
+        // }
     }
 
     pub fn id(&self) -> u16 {

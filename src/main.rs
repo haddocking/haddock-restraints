@@ -1,10 +1,12 @@
 mod air;
 mod input;
 mod interactor;
-mod sasa;
+// mod sasa;
+mod align;
 mod structure;
 use air::Air;
 use interactor::Interactor;
+
 use std::{error::Error, vec};
 
 use clap::{Parser, Subcommand};
@@ -36,6 +38,13 @@ enum Commands {
         #[arg(help = "PDB file")]
         input: String,
     },
+    #[command(about = "placeholder")]
+    Align {
+        #[arg(help = "PDB file 1")]
+        inputA: String,
+        #[arg(help = "PDB file 2")]
+        inputB: String,
+    },
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -50,6 +59,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Restraint { input } => {
             let _ = restraint_bodies(input);
+        }
+        Commands::Align { inputA, inputB } => {
+            let _ = align::align(inputA, inputB);
         }
     }
 
