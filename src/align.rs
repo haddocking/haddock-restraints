@@ -1,3 +1,7 @@
+use nalgebra::{DMatrix, Matrix3, Vector3, SVD};
+use rand::seq::index;
+use std::{char::MAX, f64};
+
 #[derive(Debug, Clone, Copy)]
 struct Point {
     x: f64,
@@ -11,18 +15,27 @@ impl Point {
     }
 }
 
-use nalgebra::{DMatrix, Matrix3, Vector3, SVD};
-use std::f64;
+#[derive(Debug, Clone)]
+struct Afp {
+    first: i32,
+    second: i32,
+}
+
+impl Afp {
+    fn new(first: i32, second: i32) -> Self {
+        Afp { first, second }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Path {
+    afps: Vec<Afp>,
+}
+
 const D0: f64 = 3.0;
 const D1: f64 = 4.0;
-const MAX_KEPT: usize = 20;
+// const MAX_KEPT: usize = 20;
 const GAP_MAX: usize = 30;
-
-// #[derive(Clone, Debug)]
-// struct Afp {
-//     first: i32,
-//     second: i32,
-// }
 
 fn translate_to_origin(points: &[Point], centroid: Point) -> Vec<Point> {
     points
@@ -87,6 +100,52 @@ fn apply_rotation(points: &[Point], rotation: Matrix3<f64>) -> Vec<Point> {
         })
         .collect()
 }
+fn kabsch_algorithm(points1: &[Point], points2: &[Point]) -> Vec<Point> {
+    assert_eq!(
+        points1.len(),
+        points2.len(),
+        "Point sets must have the same length"
+    );
+
+    let centroid1 = centroid(points1);
+    let centroid2 = centroid(points2);
+
+    let points1_centered = translate_to_origin(points1, centroid1);
+    let points2_centered = translate_to_origin(points2, centroid2);
+
+    let cov_matrix = covariance_matrix(&points1_centered, &points2_centered);
+
+    let rotation = optimal_rotation(cov_matrix);
+
+    let rotated = apply_rotation(&points1_centered, rotation);
+
+    // Translate back to original position
+    rotated
+        .iter()
+        .map(|p| Point::new(p.x + centroid2.x, p.y + centroid2.y, p.z + centroid2.z))
+        .collect()
+}
+
+fn rmsd(points1: &[Point], points2: &[Point]) -> f64 {
+    assert_eq!(
+        points1.len(),
+        points2.len(),
+        "Point sets must have the same length"
+    );
+
+    let sum_of_squares: f64 = points1
+        .iter()
+        .zip(points2.iter())
+        .map(|(p1, p2)| {
+            let dx = p1.x - p2.x;
+            let dy = p1.y - p2.y;
+            let dz = p1.z - p2.z;
+            dx * dx + dy * dy + dz * dz
+        })
+        .sum();
+
+    (sum_of_squares / points1.len() as f64).sqrt()
+}
 
 fn get_coords(pdb_file: &str) -> Vec<Point> {
     let mut coords = Vec::new();
@@ -99,6 +158,11 @@ fn get_coords(pdb_file: &str) -> Vec<Point> {
     };
 
     for atom in pdb.atoms() {
+        // Only get CA atoms
+        if atom.name() != "CA" {
+            continue;
+        }
+
         coords.push(Point {
             x: atom.x(),
             y: atom.y(),
@@ -126,8 +190,8 @@ fn calc_distance_matrix(coords: &[Point]) -> Vec<Vec<f64>> {
 }
 
 fn calc_s(
-    d1: &Vec<Vec<f64>>,
-    d2: &Vec<Vec<f64>>,
+    d1: &[Vec<f64>],
+    d2: &[Vec<f64>],
     len_a: usize,
     len_b: usize,
     win_size: usize,
@@ -158,167 +222,79 @@ fn calc_s(
     s
 }
 
-fn kabsch_algorithm(points1: &[Point], points2: &[Point]) -> Vec<Point> {
-    assert_eq!(
-        points1.len(),
-        points2.len(),
-        "Point sets must have the same length"
-    );
-
-    let centroid1 = centroid(points1);
-    let centroid2 = centroid(points2);
-
-    let points1_centered = translate_to_origin(points1, centroid1);
-    let points2_centered = translate_to_origin(points2, centroid2);
-
-    let cov_matrix = covariance_matrix(&points1_centered, &points2_centered);
-
-    let rotation = optimal_rotation(cov_matrix);
-
-    let rotated = apply_rotation(&points1_centered, rotation);
-
-    // Translate back to original position
-    rotated
-        .iter()
-        .map(|p| Point::new(p.x + centroid2.x, p.y + centroid2.y, p.z + centroid2.z))
-        .collect()
-}
-use std::ptr;
-
-// // Define the path and afp structures
-// struct Path {
-//     afps: Vec<Afp>,
-// }
-
-struct Afp {
-    first: i32,
-    second: i32,
-}
-
-#[derive(Clone)] // Add this line to derive the Clone trait for Path
-struct Path {
-    afps: Vec<Afp>,
-}
-
-impl Clone for Afp {
-    fn clone(&self) -> Self {
-        Self {
-            first: self.first,
-            second: self.second,
-        }
-    }
-}
-
 fn find_path(
-    s: &Vec<Vec<f64>>,
-    da: &Vec<Vec<f64>>,
-    db: &Vec<Vec<f64>>,
-    len_a: usize,
-    len_b: usize,
+    da: &[Vec<f64>],
+    db: &[Vec<f64>],
+    s: &[Vec<f64>],
     win_size: usize,
 ) -> Vec<Vec<(i32, i32)>> {
-    // CE-specific cutoffs
-    const D0: f64 = 3.0;
-    const D1: f64 = 4.0;
-    const MAX_KEPT: usize = 20;
-    const GAP_MAX: usize = 30;
-
-    // the best Path's score
-    let mut best_path_score = 1e6;
-    let mut best_path_length = 0;
-
-    // length of longest possible alignment
-    let smaller = if len_a < len_b { len_a } else { len_b };
-    let win_sum = (win_size - 1) * (win_size - 2) / 2;
-
-    // BEST PATH
-    let mut best_path = Path {
-        afps: vec![
-            Afp {
-                first: -1,
-                second: -1
-            };
-            smaller
-        ],
+    let mut best_path_len = 0;
+    let mut best_path_score = f64::MAX;
+    // Longest possible alignment path
+    let longest_possible_path = if da.len() < db.len() {
+        da.len()
+    } else {
+        db.len()
     };
 
-    // for storing the best 20 paths
-    let mut buffer_index = 0;
-    let mut buffer_size = 0;
-    let mut len_buffer = vec![0; MAX_KEPT];
-    let mut score_buffer = vec![1e6; MAX_KEPT];
-    let mut path_buffer: Vec<Option<Path>> = vec![None; MAX_KEPT];
+    let win_sum = (win_size - 1) * (win_size - 2) / 2;
 
-    // winCache
-    let mut win_cache = Vec::with_capacity(smaller);
-    for i in 0..smaller {
-        win_cache.push((i + 1) * i * win_size / 2 + (i + 1) * win_sum);
+    // Create a vector to store the values
+    let mut win_cache = vec![0; longest_possible_path];
+
+    // Fill the vector with the computed values
+    for i in 0..longest_possible_path {
+        win_cache[i] = ((i + 1) * i * win_size / 2) + (((i + 1) as i32 * win_sum as i32) as usize);
     }
 
-    // allScoreBuffer
-    let mut all_score_buffer = Vec::with_capacity(smaller);
-    for _ in 0..smaller {
-        let mut buffer = vec![1e6; GAP_MAX * 2 + 1];
-        all_score_buffer.push(buffer);
-    }
+    let mut best_path = Path {
+        afps: vec![Afp::new(-1, -1); longest_possible_path],
+    };
 
-    let mut t_index = vec![0; smaller];
-    let mut gap_best_index = -1;
+    let mut all_score_buffer: Vec<Vec<f64>> =
+        vec![vec![1e6; GAP_MAX * 2 + 1]; longest_possible_path];
 
-    // Start the search through the CE matrix.
-    for i_a in 0..len_a {
-        if i_a > len_a - win_size * (best_path_length - 1) {
-            break;
-        }
+    let mut t_index: Vec<i32> = vec![0; longest_possible_path];
 
-        for i_b in 0..len_b {
-            if s[i_a][i_b] >= D0 {
-                continue;
-            }
+    for (i_a, _element_a) in da.iter().enumerate() {
+        // // Limit how deep this loop can go;
+        // if i_a as i32 > da.len() as i32 - (win_size * best_path.afps.len() as i32 - 1) {
+        //     continue;
+        // }
 
-            if s[i_a][i_b] == -1.0 {
-                continue;
-            }
-
-            if i_b > len_b - win_size * (best_path_length - 1) {
-                break;
-            }
-
-            let mut cur_path = Path {
-                afps: vec![
-                    Afp {
-                        first: -1,
-                        second: -1
-                    };
-                    smaller
-                ],
+        for (i_b, _element_b) in db.iter().enumerate() {
+            let similarity_score = s[i_a][i_b];
+            let mut current_path_len = 1;
+            t_index[current_path_len - 1] = 0;
+            // Check all possible paths starting from iA, iB
+            let mut path = Path {
+                afps: vec![Afp::new(-1, -1); longest_possible_path],
             };
 
-            cur_path.afps[0] = Afp {
-                first: i_a as i32,
-                second: i_b as i32,
-            };
-            let mut cur_path_length = 1;
-            t_index[cur_path_length - 1] = 0;
-            let mut cur_total_score = 0.0;
+            path.afps[0] = Afp::new(i_a as i32, i_b as i32);
+
             let mut done = false;
-
             while !done {
-                let mut gap_best_score = 1e6;
-                gap_best_index = -1;
+                let mut gap_best_score = f64::MAX;
+                let mut gap_best_index = -1;
 
                 for g in 0..(GAP_MAX * 2) + 1 {
-                    let mut j_a = cur_path.afps[cur_path_length - 1].first + win_size as i32;
-                    let mut j_b = cur_path.afps[cur_path_length - 1].second + win_size as i32;
+                    // println!("g: {}", g);
+                    let mut j_a = path.afps[current_path_len - 1].first + win_size as i32;
+                    let mut j_b = path.afps[current_path_len - 1].second + win_size as i32;
 
-                    if (g + 1) % 2 == 0 {
-                        j_a += (g + 1) as i32 / 2;
-                    } else {
-                        j_b += (g + 1) as i32 / 2;
+                    if j_a < 0 || j_b < 0 {
+                        continue;
                     }
 
-                    if j_a > len_a as i32 - win_size as i32 - 1
-                        || j_b > len_b as i32 - win_size as i32 - 1
+                    if ((g + 1) % 2) == 0 {
+                        j_a += (g as i32 + 1) / 2;
+                    } else {
+                        j_b += (g as i32 + 1) / 2;
+                    }
+
+                    if j_a > da.len() as i32 - win_size as i32 - 1
+                        || j_b > db.len() as i32 - win_size as i32 - 1
                     {
                         continue;
                     }
@@ -331,177 +307,127 @@ fn find_path(
                         continue;
                     }
 
-                    let mut cur_score = 0.0;
-                    for s in 0..cur_path_length {
-                        cur_score += (da[cur_path.afps[s].first as usize][j_a as usize]
-                            - db[cur_path.afps[s].second as usize][j_b as usize])
-                            .abs();
-                        cur_score += (da[cur_path.afps[s].first as usize + win_size - 1]
-                            [j_a as usize + win_size - 1]
-                            - db[cur_path.afps[s].second as usize + win_size - 1]
-                                [j_b as usize + win_size - 1])
-                            .abs();
-                        for k in 1..win_size - 1 {
-                            cur_score += (da[cur_path.afps[s].first as usize + k]
-                                [j_a as usize + win_size - 1 - k]
-                                - db[cur_path.afps[s].second as usize + k]
-                                    [j_b as usize + win_size - 1 - k])
-                                .abs();
-                        }
-                    }
+                    // Calculate the score of this path
+                    let mut score = 0.0;
 
-                    cur_score /= win_size as f64 * cur_path_length as f64;
+                    let anchor_a = path.afps[current_path_len - 1].first;
+                    let anchor_b = path.afps[current_path_len - 1].second;
 
-                    if cur_score >= D1 {
+                    // If any of the indexes are out of bounds, skip this iteration
+                    if j_a >= da.len() as i32 || j_b >= db.len() as i32 {
                         continue;
                     }
 
-                    if cur_score < gap_best_score {
-                        cur_path.afps[cur_path_length].first = j_a;
-                        cur_path.afps[cur_path_length].second = j_b;
-                        gap_best_score = cur_score;
-                        gap_best_index = g as i32;
-                        all_score_buffer[cur_path_length - 1][g] = cur_score;
+                    // Calculate the score
+                    score += (da[anchor_a as usize][j_a as usize]
+                        - db[anchor_b as usize][j_b as usize])
+                        .abs();
+
+                    score += (da[anchor_a as usize + win_size - 1][j_a as usize + win_size - 1]
+                        - db[anchor_b as usize + win_size - 1][j_b as usize + win_size - 1])
+                        .abs();
+
+                    for k in 0..win_size - 1 {
+                        score += (da[anchor_a as usize + k][j_a as usize + win_size - 1 - k]
+                            - db[anchor_b as usize + k][j_b as usize + win_size - 1 - k])
+                            .abs();
                     }
-                }
-                /// ROF -- END GAP SEARCHING
+
+                    score /= win_size as f64 * current_path_len as f64;
+
+                    // println!("score: {}", score);
+
+                    if score < gap_best_score {
+                        path.afps[current_path_len].first = j_a;
+                        path.afps[current_path_len].second = j_b;
+                        gap_best_score = score;
+                        gap_best_index = g as i32;
+                        all_score_buffer[current_path_len - 1][g] = score;
+                    }
+                } // end of gap search
+
+                // Calculate current_total_score
+                let mut current_total_score = 0.0;
+
+                let g_a: i32;
+                let g_b: i32;
                 if gap_best_index != -1 {
                     let j_gap = (gap_best_index + 1) / 2;
-                    let g_a;
-                    let g_b;
-                    if (gap_best_index + 1) % 2 == 0 {
-                        g_a = cur_path.afps[cur_path_length - 1].first + win_size as i32 + j_gap;
-                        g_b = cur_path.afps[cur_path_length - 1].second + win_size as i32;
+                    if ((gap_best_index + 1) % 2) == 0 {
+                        g_a = path.afps[current_path_len - 1].first + win_size as i32 + j_gap;
+                        g_b = path.afps[current_path_len - 1].second + win_size as i32;
                     } else {
-                        g_a = cur_path.afps[cur_path_length - 1].first + win_size as i32;
-                        g_b = cur_path.afps[cur_path_length - 1].second + win_size as i32 + j_gap;
+                        g_a = path.afps[current_path_len - 1].first + win_size as i32;
+                        g_b = path.afps[current_path_len - 1].second + win_size as i32 + j_gap;
                     }
 
-                    let score1 = (all_score_buffer[cur_path_length - 1][gap_best_index as usize]
+                    let score1 = (all_score_buffer[current_path_len - 1][gap_best_index as usize]
                         * win_size as f64
-                        * cur_path_length as f64
-                        + s[g_a as usize][g_b as usize] * win_sum as f64)
-                        / (win_size as f64 * cur_path_length as f64 + win_sum as f64);
+                        * current_path_len as f64
+                        + s[g_a as usize][g_b as usize] * win_size as f64)
+                        / (win_sum as f64 * current_path_len as f64 + win_sum as f64);
 
-                    let score2 = if cur_path_length > 1 {
-                        (all_score_buffer[cur_path_length - 2][t_index[cur_path_length - 1]]
-                            * win_cache[cur_path_length - 1] as f64
-                            + score1
-                                * (win_cache[cur_path_length] - win_cache[cur_path_length - 1])
-                                    as f64)
-                            / win_cache[cur_path_length] as f64
+                    let score2 = if current_path_len > 1 {
+                        all_score_buffer[current_path_len - 2]
+                            [t_index[current_path_len - 1] as usize]
                     } else {
-                        (s[i_a][i_b] * win_cache[cur_path_length - 1] as f64
-                            + score1
-                                * (win_cache[cur_path_length] - win_cache[cur_path_length - 1])
-                                    as f64)
-                            / win_cache[cur_path_length] as f64
-                    };
+                        s[i_a][i_b]
+                    } * win_cache[current_path_len - 1] as f64
+                        + score1
+                            * (win_cache[current_path_len] - win_cache[current_path_len - 1])
+                                as f64
+                            / win_cache[current_path_len] as f64;
 
-                    cur_total_score = score2;
+                    current_total_score = score2;
 
-                    if cur_total_score > D1 {
+                    if current_total_score > D1 {
                         done = true;
-                        gap_best_index = -1;
-                        break;
+                        gap_best_index -= 1;
+                        continue;
                     } else {
-                        all_score_buffer[cur_path_length - 1][gap_best_index as usize] =
-                            cur_total_score;
-                        t_index[cur_path_length] = gap_best_index as usize;
-                        cur_path_length += 1;
+                        all_score_buffer[current_path_len - 1][gap_best_index as usize] =
+                            current_total_score;
+                        t_index[current_path_len] = gap_best_index;
+                        current_path_len += 1;
                     }
                 } else {
                     done = true;
-                    cur_path_length -= 1;
-                    break;
+                    current_path_len -= 1;
+                    continue;
                 }
 
-                if cur_path_length > best_path_length
-                    || (cur_path_length == best_path_length && cur_total_score < best_path_score)
+                if current_path_len > best_path_len
+                    || (current_path_len == best_path_len && current_total_score < best_path_score)
                 {
-                    best_path_length = cur_path_length;
-                    best_path_score = cur_total_score;
-                    best_path.afps = cur_path.afps.clone();
-                }
-            }
-            /// END WHILE
-            if best_path_length > len_buffer[buffer_index]
-                || (best_path_length == len_buffer[buffer_index]
-                    && best_path_score < score_buffer[buffer_index])
-            {
-                buffer_index = if buffer_index == MAX_KEPT - 1 {
-                    0
-                } else {
-                    buffer_index + 1
-                };
-                buffer_size = if buffer_size < MAX_KEPT {
-                    buffer_size + 1
-                } else {
-                    MAX_KEPT
-                };
-                let path_copy = Path {
-                    afps: best_path.afps.clone(),
-                };
+                    best_path_len = current_path_len;
+                    best_path_score = current_total_score;
+                    best_path = path.clone();
 
-                if buffer_index == 0 && buffer_size == MAX_KEPT {
-                    path_buffer[MAX_KEPT - 1] = Some(path_copy);
-                    score_buffer[MAX_KEPT - 1] = best_path_score;
-                    len_buffer[MAX_KEPT - 1] = best_path_length;
-                } else {
-                    path_buffer[buffer_index - 1] = Some(path_copy);
-                    score_buffer[buffer_index - 1] = best_path_score;
-                    len_buffer[buffer_index - 1] = best_path_length;
+                    // for i in 0..current_path_len {
+                    //     best_path.afps[i] = path.afps[i];
+                    // }
                 }
-            }
+
+                done = true;
+            } // end loop
+        } // end ib
+    } // end ia
+
+    // Loop over the best paths and expand them into continuous lists
+    let mut result: Vec<Vec<(i32, i32)>> = Vec::new();
+    for p in best_path.afps.iter() {
+        // println!("{:?}", p);
+        let mut data: Vec<(i32, i32)> = Vec::new();
+        if p.first == -1 || p.second == -1 {
+            continue;
         }
-    }
-
-    let mut r_val = Vec::new();
-    let mut i = 0;
-
-    while i < buffer_size {
-        let mut cur_list = Vec::new();
-        let mut j = 0;
-
-        while j < smaller {
-            if path_buffer[i].as_ref().unwrap().afps[j].first != -1 {
-                let mut k = 0;
-                while k < win_size {
-                    cur_list.push((
-                        path_buffer[i].as_ref().unwrap().afps[j].first + k as i32,
-                        path_buffer[i].as_ref().unwrap().afps[j].second + k as i32,
-                    ));
-                    k += 1;
-                }
-            }
-            j += 1;
+        for k in 0..win_size {
+            println!("{} {}", p.first + k as i32, p.second + k as i32);
+            data.push((p.first + k as i32, p.second + k as i32));
         }
-        r_val.push(cur_list);
-        i += 1;
+        result.push(data);
     }
-
-    r_val
-}
-
-fn rmsd(points1: &[Point], points2: &[Point]) -> f64 {
-    assert_eq!(
-        points1.len(),
-        points2.len(),
-        "Point sets must have the same length"
-    );
-
-    let sum_of_squares: f64 = points1
-        .iter()
-        .zip(points2.iter())
-        .map(|(p1, p2)| {
-            let dx = p1.x - p2.x;
-            let dy = p1.y - p2.y;
-            let dz = p1.z - p2.z;
-            dx * dx + dy * dy + dz * dz
-        })
-        .sum();
-
-    (sum_of_squares / points1.len() as f64).sqrt()
+    result
 }
 
 fn simp_align(
@@ -574,7 +500,6 @@ fn simp_align(
     } else {
         s.iter().map(|&x| x).collect::<Vec<_>>()
     };
-    println!("here!");
 
     let rmsd = e0 - 2.0 * s.iter().sum::<f64>();
     let rmsd = (rmsd.abs() / l as f64).sqrt();
@@ -587,18 +512,18 @@ fn simp_align(
     assert!(mol2.is_some());
 
     // U is simply V*Wt
-    let u = v * wt;
+    // let u = v * wt;
 
-    // rotate and translate the molecule
-    let mol2 = mol2
-        .unwrap()
-        .iter()
-        .map(|p| {
-            let np = nalgebra::DVector::from_vec(vec![p.x - com2.x, p.y - com2.y, p.z - com2.z]);
-            let np = u.clone() * np + nalgebra::DVector::from_vec(vec![com1.x, com1.y, com1.z]);
-            Point::new(np[0], np[1], np[2])
-        })
-        .collect::<Vec<_>>();
+    // // rotate and translate the molecule
+    // let mol2 = mol2
+    //     .unwrap()
+    //     .iter()
+    //     .map(|p| {
+    //         let np = nalgebra::DVector::from_vec(vec![p.x - com2.x, p.y - com2.y, p.z - com2.z]);
+    //         let np = u.clone() * np + nalgebra::DVector::from_vec(vec![com1.x, com1.y, com1.z]);
+    //         Point::new(np[0], np[1], np[2])
+    //     })
+    //     .collect::<Vec<_>>();
 
     // let PyMol know about the changes to the coordinates
     // cmd.alter_state(1, name2, "(x,y,z)=stored.sel2.pop(0)");
@@ -612,48 +537,83 @@ pub fn align(input_a: &str, input_b: &str) -> Result<(), Box<dyn std::error::Err
     println!("Reading input file: {}", input_a);
     println!("Reading input file: {}", input_b);
 
+    // 1. Get CA coordinates, these are added to a Vec<Point> (Python in cealign.py)
     let coords_a = get_coords(input_a);
     let coords_b = get_coords(input_b);
 
+    // 2. Calculate the Distance Matrix for each protein
     let dm_a = calc_distance_matrix(&coords_a);
     let dm_b = calc_distance_matrix(&coords_b);
 
-    let s = calc_s(&dm_a, &dm_b, dm_a.len(), dm_b.len(), 5);
+    // 3. Compute the Similarity Matrix;
+    //  - The function iterates over all possible starting positions iA in d1 and iB in d2.
+    //  - For each pair of starting positions, it initializes S[iA][iB] to -1.0 as a default value.
+    //  - It checks if the current starting positions allow a complete segment of size winSize to fit within the bounds of d1 and d2. If not, it continues to the next pair.
+    //  - For valid segments, it calculates a similarity score by comparing the distances between pairs of residues within the window. It skips distances between neighboring residues (a heuristic decision to ignore these commonly similar distances).
+    //  - The score is computed as the sum of the absolute differences between the corresponding distances in d1 and d2, normalized by sumSize.
+    //  - After computing the similarity scores for all pairs of segments, the function returns the 2D array S, which contains the normalized similarity scores.
+    let s = calc_s(&dm_a, &dm_b, dm_a.len(), dm_b.len(), 8);
 
-    let paths = find_path(&s, &dm_a, &dm_b, dm_a.len(), dm_b.len(), 5);
+    // 4. Find the best path through the similarity matrix;
+    //  - The function iterates over all possible starting positions iA and iB in the similarity matrix S.
+    //  - For each pair (iA, iB), it checks if the similarity score S[iA][iB] is below the threshold D0 and not equal to -1.0.
+    //  - If the starting positions are valid, it initializes a new path curPath starting from (iA, iB).
+    //  - The function then searches for the best path starting from this position, considering all possible gaps up to gapMax.
+    // let paths = find_path(&s, &dm_a, &dm_b, 8);
+    let aln = find_path(&dm_a, &dm_b, &s, 8);
 
-    for cur_alignment in paths {
-        let seq_count = cur_alignment.len();
+    println!("{:?}", aln);
+    let bestPathScore = 100000;
+    for c_aln in aln {
+        // let seq_count = cur_alignment.len();
         let mut mat_a: Option<Vec<Point>> = None;
         let mut mat_b: Option<Vec<Point>> = None;
 
-        if seq_count == 0 {
-            continue;
-        }
-
-        for afp in cur_alignment {
-            let (first, second) = afp;
+        // if seq_count == 0 {
+        //     continue;
+        // }
+        for afp in &c_aln {
+            // for afp in cur_alignment.iter() {
+            // let (first, second) = afp;
             if mat_a.is_none() && mat_b.is_none() {
-                mat_a = Some(vec![coords_a[(first - 1) as usize]]);
-                mat_b = Some(vec![coords_b[(second - 1) as usize]]);
+                mat_a = Some(vec![coords_a[(afp.0 - 1) as usize]]);
+                mat_b = Some(vec![coords_b[(afp.1 - 1) as usize]]);
             } else {
-                mat_a.as_mut().unwrap().push(coords_a[(first - 1) as usize]);
-                mat_b
-                    .as_mut()
-                    .unwrap()
-                    .push(coords_b[(second - 1) as usize]);
+                mat_a.as_mut().unwrap().push(coords_a[(afp.0 - 1) as usize]);
+                mat_b.as_mut().unwrap().push(coords_b[(afp.1 - 1) as usize]);
             }
+            // }
+            let rmsd = simp_align(
+                mat_a.as_ref().unwrap(),
+                mat_b.as_ref().unwrap(),
+                input_a,
+                input_b,
+                Some(&coords_a),
+                Some(&coords_b),
+                1,
+                mat_a.as_ref().unwrap().len(),
+            );
+
+            //     internalGaps = 0.0;
+            // for g in range(0, seqCount-1):
+            // 	if (not curAlignment[g][0] + 1 == curAlignment[g+1][0]):
+            // 		internalGaps += curAlignment[g+1][0]
+            // 	if ( not curAlignment[g][1] + 1 == curAlignment[g+1][1] ):
+            // 		internalGaps += curAlignment[g+1][1]
+
+            // 	aliLen = float( len(curAlignment))
+            // 	numGap = internalGaps;
+            // 	curScore = float((curScore/aliLen)*(1.0+(numGap/aliLen)));
+            // let mut internal_gaps = 0.0;
+            // for g in 0..c_aln.len() - 1 {
+            //     if c_aln[g].0 + 1 != c_aln[g + 1].0 {
+            //         internal_gaps += afp[g + 1][0]
+            //     }
+            //     if c_aln[g].1 + 1 != c_aln[g + 1].1 {
+            //         // internalGaps += curAlignment[g+1][1]
+            //     }
+            // }
         }
-        let score = simp_align(
-            mat_a.as_ref().unwrap(),
-            mat_b.as_ref().unwrap(),
-            input_a,
-            input_b,
-            Some(&coords_a),
-            Some(&coords_b),
-            1,
-            seq_count,
-        );
     }
 
     // println!("{:?}", s.len());
