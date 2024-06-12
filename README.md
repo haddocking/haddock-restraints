@@ -5,6 +5,7 @@
 ![Crates.io License](https://img.shields.io/crates/l/haddock-restraints)
 
 [![tests](https://github.com/haddocking/haddock-restraints/actions/workflows/test.yml/badge.svg)](https://github.com/haddocking/haddock-restraints/actions/workflows/test.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/cc008f968e394457ae63650cccfd27da)](https://app.codacy.com/gh/haddocking/haddock-restraints/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 A standalone command-line application to generate restraints to be used in HADDOCK.
 
