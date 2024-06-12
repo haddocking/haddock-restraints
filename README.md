@@ -27,6 +27,7 @@ A standalone command-line application to generate restraints to be used in HADDO
 - [x] Create unambiguous restraints to keep molecules together during docking
 - [x] Filter out buried residues
 - [x] List residues in the interface
+- [ ] Template based restraints
 - [ ] Specify atom subsets
 - [ ] ~Generate random-restraints~ done via CNS
 
