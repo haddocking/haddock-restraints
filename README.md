@@ -35,6 +35,8 @@ A standalone command-line application to generate restraints to be used in HADDO
 
 ### Install
 
+> [Install Rust](https://www.rust-lang.org/tools/install) if you don't have it yet - later we will provide the execution binaries 🤓
+
 ```bash
 cargo install haddock-restraints
 ```
