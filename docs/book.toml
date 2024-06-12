@@ -1,0 +1,6 @@
+[book]
+authors = ["Rodrigo V Honorato"]
+language = "en"
+multilingual = false
+src = "src"
+title = "haddock-restraints"
