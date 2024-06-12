@@ -4,3 +4,8 @@ language = "en"
 multilingual = false
 src = "src"
 title = "haddock-restraints"
+
+[output.html]
+git-repository-url = "https://github.com/haddocking/haddock-restraints"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/haddocking/haddock-restraints/edit/main/docs/{path}"
