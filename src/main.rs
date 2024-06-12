@@ -36,6 +36,13 @@ enum Commands {
         #[arg(help = "PDB file")]
         input: String,
     },
+    #[command(about = "List residues in the interface")]
+    Interface {
+        #[arg(help = "PDB file")]
+        input: String,
+        #[arg(help = "Cutoff distance for interface residues")]
+        cutoff: f64,
+    },
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -50,6 +57,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Restraint { input } => {
             let _ = restraint_bodies(input);
+        }
+        Commands::Interface { input, cutoff } => {
+            let _ = list_interface(input, cutoff);
         }
     }
 
@@ -177,6 +187,26 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
     let tbl = air.gen_tbl().unwrap();
 
     println!("{}", tbl);
+
+    Ok(())
+}
+
+fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
+    let pdb = match pdbtbx::open_pdb(input_file, pdbtbx::StrictnessLevel::Loose) {
+        Ok((pdb, _warnings)) => pdb,
+        Err(e) => {
+            panic!("Error opening PDB file: {:?}", e);
+        }
+    };
+
+    let true_interface = structure::get_true_interface(&pdb, *cutoff);
+
+    for (chain_id, residues) in true_interface.iter() {
+        let mut sorted_res = residues.iter().collect::<Vec<_>>();
+        sorted_res.sort();
+
+        println!("Chain {}: {:?}", chain_id, sorted_res);
+    }
 
     Ok(())
 }
