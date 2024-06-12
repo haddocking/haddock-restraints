@@ -11,7 +11,7 @@ A standalone command-line application to generate restraints to be used in HADDO
 
 ## Commands
 
-- [`tbl`: Generate TBL file from input file](#tbl-command)
+- [`tbl`: Generates a TBL file](#tbl-command)
 - [`ti`: Generate true-interface restraints from a PDB file](#ti-command)
 - [`restraint`: Generate Unambiguous restraints to keep molecules together during docking](#restraint-command)
 - [`interface`: List residues in the interface](#interface-command)
