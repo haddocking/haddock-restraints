@@ -179,3 +179,37 @@ pub fn find_structural_gaps(pdb: &pdbtbx::PDB) -> Vec<Gap> {
 
     gaps
 }
+
+#[cfg(test)]
+mod tests {
+
+    use std::env;
+
+    use super::*;
+
+    #[test]
+    fn test_get_true_interface() {
+        let pdb_path = env::current_dir().unwrap().join("tests/data/complex.pdb");
+
+        let pdb = pdbtbx::open_pdb(pdb_path.to_str().unwrap(), pdbtbx::StrictnessLevel::Loose)
+            .unwrap()
+            .0;
+
+        let observed_true_interface = get_true_interface(&pdb, 5.0);
+
+        let mut expected_true_interface: HashMap<String, HashSet<isize>> = HashMap::new();
+        let chain_a = "A".to_string();
+        let res_a: HashSet<isize> = vec![934, 936, 933, 946, 950, 938, 940, 941, 937, 931]
+            .into_iter()
+            .collect();
+        let chain_b = "B";
+        let res_b: HashSet<isize> = vec![66, 48, 68, 49, 46, 45, 44, 47, 69, 6, 70, 8, 42]
+            .into_iter()
+            .collect();
+
+        expected_true_interface.insert(chain_a, res_a);
+        expected_true_interface.insert(chain_b.to_string(), res_b);
+
+        assert_eq!(observed_true_interface, expected_true_interface);
+    }
+}
