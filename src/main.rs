@@ -69,16 +69,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn gen_tbl(input_file: &str) {
     let mut interactors = input::read_json_file(input_file).unwrap();
 
-    let wd = std::path::Path::new(input_file)
-        .parent()
-        .unwrap()
-        .to_str()
-        .unwrap();
-
     interactors.iter_mut().for_each(|interactor| {
         if !interactor.structure().is_empty() {
-            interactor.set_structure(format!("{}/{}", wd, interactor.structure()).as_str());
-
             if interactor.passive_from_active() {
                 interactor.set_passive_from_active();
             }
