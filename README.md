@@ -6,6 +6,13 @@
 
 A standalone command-line application to generate restraints to be used in HADDOCK.
 
+## Commands
+
+- [`tbl`: Generate TBL file from input file](#tbl-command)
+- [`ti`: Generate true-interface restraints from a PDB file](#ti-command)
+- [`restraint`: Generate Unambiguous restraints to keep molecules together during docking](#restraint-command)
+- [`interface`: List residues in the interface](#interface-command)
+
 ## Planned features
 
 - [x] Generate `.tbl` files from an input file
@@ -16,7 +23,7 @@ A standalone command-line application to generate restraints to be used in HADDO
 - [x] Generate _true-interface_ restraints for benchmarking
 - [x] Create unambiguous restraints to keep molecules together during docking
 - [x] Filter out buried residues
-- [ ] List residues in the interface
+- [x] List residues in the interface
 - [ ] Specify atom subsets
 - [ ] ~Generate random-restraints~ done via CNS
 
@@ -40,10 +47,12 @@ Commands:
   tbl        Generate TBL file from input file
   ti         Generate true-interface restraints from a PDB file
   restraint  Generate Unambiguous restraints to keep molecules together during docking
+  interface  List residues in the interface
   help       Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
+  -V, --version  Print version
 ```
 
 ### `ti` command
@@ -168,6 +177,31 @@ Example:
 
 ```bash
 ./haddock-restraints restraint examples/2oob_w_gaps.pdb > unambiguous.tbl
+```
+
+### `interface` command
+
+```bash
+$ ./haddock-restraints interface -h
+List residues in the interface
+
+Usage: haddock-restraints interface <INPUT> <CUTOFF>
+
+Arguments:
+  <INPUT>   PDB file
+  <CUTOFF>  Cutoff distance for interface residues
+
+Options:
+  -h, --help  Print help
+```
+
+Example:
+
+```bash
+./haddock-restraints interface examples/2oob.pdb 5.0
+
+Chain A: [931, 933, 934, 936, 937, 938, 940, 941, 946, 950]
+Chain B: [6, 8, 42, 44, 45, 46, 47, 48, 49, 66, 68, 69, 70]
 ```
 
 ***
