@@ -8,14 +8,12 @@ pub fn read_json_file(file_path: &str) -> Result<Vec<Interactor>, Box<dyn std::e
     let reader = BufReader::new(file);
     let mut data: Vec<Interactor> = serde_json::from_reader(reader)?;
 
-    // Patch the structure path, they will be relative to the location in which the command is being executed
     let wd = std::path::Path::new(file_path).parent().unwrap();
 
     data.iter_mut().for_each(|interactor| {
         if !interactor.structure().is_empty() {
             let pdb_path = wd.join(interactor.structure());
 
-            // Make sure this is a valid path
             if pdb_path.exists() {
                 interactor.set_structure(pdb_path.to_str().unwrap());
             } else {
