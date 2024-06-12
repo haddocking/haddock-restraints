@@ -4,6 +4,8 @@
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/haddock-restraints)
 ![Crates.io License](https://img.shields.io/crates/l/haddock-restraints)
 
+[![tests](https://github.com/haddocking/haddock-restraints/actions/workflows/test.yml/badge.svg)](https://github.com/haddocking/haddock-restraints/actions/workflows/test.yml)
+
 A standalone command-line application to generate restraints to be used in HADDOCK.
 
 ## Commands
