@@ -1,5 +1,6 @@
 use freesasa_rs::{set_verbosity, structure::Structure, FreesasaVerbosity};
 use pdbtbx::{Atom, Residue};
+use std::process;
 
 #[derive(Debug)]
 pub struct ExtendedAtom {
@@ -122,20 +123,26 @@ pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
     {
         let resname = e_res.residue.name().unwrap();
 
-        let rel_asa = REL_ASA.iter().find(|(name, _)| *name == resname).unwrap();
-        let rel_sasa_bb = (e_res.sasa_bb / rel_asa.1.bb) * 100_f64;
-        let rel_sasa_sc = (e_res.sasa_sc / rel_asa.1.sc) * 100_f64;
-        let rel_total = (e_res.sasa_bb + e_res.sasa_sc / rel_asa.1.total) * 100_f64;
+        // if let Some(rel_asa)  =
+        match REL_ASA.iter().find(|(name, _)| *name == resname) {
+            Some(rel_asa) => {
+                let rel_sasa_bb = (e_res.sasa_bb / rel_asa.1.bb) * 100_f64;
+                let rel_sasa_sc = (e_res.sasa_sc / rel_asa.1.sc) * 100_f64;
+                let rel_total = (e_res.sasa_bb + e_res.sasa_sc / rel_asa.1.total) * 100_f64;
 
-        e_res.rel_sasa_bb = rel_sasa_bb;
-        e_res.rel_sasa_sc = rel_sasa_sc;
-        e_res.rel_sasa_total = rel_total;
-
-        // // Find all the atoms that belong to this residue and set the rel_sasa_sc as the bfactor
-        // for atom in res.atoms_mut() {
-        //     let extended_atom = extended_atoms.iter().find(|&x| x.atom == *atom).unwrap();
-        //     let _ = atom.set_b_factor(rel_total);
-        // }
+                e_res.rel_sasa_bb = rel_sasa_bb;
+                e_res.rel_sasa_sc = rel_sasa_sc;
+                e_res.rel_sasa_total = rel_total;
+            }
+            None => {
+                eprintln!("\n### ERROR CALCULATING SASA ###");
+                eprintln!(
+                    "# No relative accessibility found for residue `{}`",
+                    resname
+                );
+                process::exit(1);
+            }
+        }
     }
     extended_residues
 }
@@ -476,3 +483,23 @@ pub const REL_ASA: &[(&str, AsaValues)] = &[
         },
     ),
 ];
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+    use std::env;
+
+    // TODO: Add more tests
+
+    #[test]
+    fn test_calculate_sasa() {
+        let pdb_path = env::current_dir().unwrap().join("tests/data/complex.pdb");
+        let pdb = pdbtbx::open_pdb(pdb_path.to_str().unwrap(), pdbtbx::StrictnessLevel::Loose)
+            .unwrap()
+            .0;
+        let extended_residues = calculate_sasa(pdb);
+
+        assert_eq!(extended_residues.len(), 116);
+    }
+}
