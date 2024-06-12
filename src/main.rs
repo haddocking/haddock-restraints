@@ -57,7 +57,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn gen_tbl(input_file: &str) {
-    println!("Reading input file: {}", input_file);
     let mut interactors = input::read_json_file(input_file).unwrap();
 
     let wd = std::path::Path::new(input_file)
@@ -86,13 +85,11 @@ fn gen_tbl(input_file: &str) {
 
     let air = Air::new(interactors);
 
-    let _tbl = air.gen_tbl().unwrap();
-    println!("{}", _tbl);
+    let tbl = air.gen_tbl().unwrap();
+    println!("{}", tbl);
 }
 
 fn true_interface(input_pdb: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
-    println!("Reading PDB file: {}", input_pdb);
-
     let pdb = match pdbtbx::open_pdb(input_pdb, pdbtbx::StrictnessLevel::Loose) {
         Ok((pdb, _warnings)) => pdb,
         Err(e) => {
@@ -127,9 +124,6 @@ fn true_interface(input_pdb: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
 
         interactors.push(interactor);
     }
-    interactors.iter().for_each(|interactor| {
-        println!("{:?}", interactor);
-    });
 
     // Make the restraints
     let air = Air::new(interactors);
@@ -178,10 +172,6 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
         interactors.push(interactor_i);
         interactors.push(interactor_j);
     });
-
-    // interactors.iter().for_each(|interactor| {
-    //     println!("{:?}", interactor);
-    // });
 
     let air = Air::new(interactors);
     let tbl = air.gen_tbl().unwrap();

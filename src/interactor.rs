@@ -116,12 +116,6 @@ impl Interactor {
                         // This residue is not accessible, remove it from the passive and active sets
                         self.passive.remove(&(r.residue.serial_number() as i16));
                         self.active.remove(&(r.residue.serial_number() as i16));
-
-                        // println!(
-                        //     "Removing residue: {}:{}",
-                        //     r.chain,
-                        //     r.residue.serial_number() as i16
-                        // );
                     }
                 });
             }
@@ -319,7 +313,6 @@ pub fn format_distance_string(
 }
 
 pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
-    // println!("Atoms: {:?}", atoms);
     match atoms {
         Some(atoms) => {
             let atoms: Vec<String> = atoms.iter().map(|x| format!(" and name {}", x)).collect();
