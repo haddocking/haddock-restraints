@@ -146,7 +146,8 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
     };
 
     // Find in-contiguous chains
-    let gaps = structure::find_structural_gaps(&pdb);
+    let bodies = structure::find_bodies(&pdb);
+    let gaps = structure::create_iter_body_gaps(&bodies);
 
     // Create the interactors
     let mut interactors: Vec<Interactor> = Vec::new();

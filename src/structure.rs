@@ -148,9 +148,8 @@ pub struct Gap {
     pub distance: f64,
 }
 
-pub fn find_structural_gaps(pdb: &pdbtbx::PDB) -> Vec<Gap> {
+pub fn find_bodies(pdb: &pdbtbx::PDB) -> HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom)>> {
     // Check if the distance of a given atom to its next one is higher than 4A
-    let mut gaps: Vec<Gap> = Vec::new();
 
     // Get only the `CA` atoms
     let mut ca_atoms: Vec<(&str, isize, &pdbtbx::Atom)> = Vec::new();
@@ -177,16 +176,16 @@ pub fn find_structural_gaps(pdb: &pdbtbx::PDB) -> Vec<Gap> {
         }
         bodies
             .entry(body_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push((*res_i, chain_i, atom_i));
     }
 
-    let pairs = create_iter_body_gaps(&bodies);
-
-    pairs
+    bodies
 }
 
-fn create_iter_body_gaps(bodies: &HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom)>>) -> Vec<Gap> {
+pub fn create_iter_body_gaps(
+    bodies: &HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom)>>,
+) -> Vec<Gap> {
     let mut rng = StdRng::seed_from_u64(42);
     let mut pairs: Vec<Gap> = Vec::new();
     let body_ids: Vec<isize> = bodies.keys().cloned().collect();
@@ -199,12 +198,12 @@ fn create_iter_body_gaps(bodies: &HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom
 
                     for i in 0..2 {
                         pairs.push(Gap {
-                            chain: selected1[i].1.clone().to_string(),
+                            chain: selected1[i].1.to_string(),
                             atom_i: selected1[i].2.name().to_string(),
                             atom_j: selected2[i].2.name().to_string(),
                             res_i: selected1[i].0,
                             res_j: selected2[i].0,
-                            distance: selected1[i].2.distance(&selected2[i].2),
+                            distance: selected1[i].2.distance(selected2[i].2),
                         });
                     }
                 }
