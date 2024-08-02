@@ -146,7 +146,8 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
     };
 
     // Find in-contiguous chains
-    let gaps = structure::find_structural_gaps(&pdb);
+    let bodies = structure::find_bodies(&pdb);
+    let gaps = structure::create_iter_body_gaps(&bodies);
 
     // Create the interactors
     let mut interactors: Vec<Interactor> = Vec::new();
@@ -162,8 +163,8 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
 
         interactor_i.set_chain(g.chain.as_str());
         interactor_i.set_active(vec![g.res_i as i16]);
-        interactor_i.set_active_atoms(vec![g.atom.clone()]);
-        interactor_i.set_passive_atoms(vec![g.atom.clone()]);
+        interactor_i.set_active_atoms(vec![g.atom_i.clone()]);
+        interactor_i.set_passive_atoms(vec![g.atom_j.clone()]);
         interactor_i.set_target_distance(g.distance);
         interactor_i.set_lower_margin(0.0);
         interactor_i.set_upper_margin(0.0);
