@@ -43,6 +43,21 @@ enum Commands {
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
     },
+
+    Z {
+        #[arg(help = "Input file")]
+        input: String,
+        #[arg(help = "List of comma separated residue indexes")]
+        residues: String,
+        #[arg(help = "Output file")]
+        output: String,
+        #[arg(help = "Spacing between two beads")]
+        spacing: f64,
+        #[arg(help = "Size in x dimension")]
+        x_size: f64,
+        #[arg(help = "Size in y dimension")]
+        y_size: f64,
+    },
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -60,6 +75,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Interface { input, cutoff } => {
             let _ = list_interface(input, cutoff);
+        }
+        Commands::Z {
+            input,
+            residues,
+            output,
+            spacing,
+            x_size,
+            y_size,
+        } => {
+            let _ = generate_z(input, residues, output, spacing, x_size, y_size);
         }
     }
 
@@ -202,4 +227,15 @@ fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> 
     }
 
     Ok(())
+}
+
+fn generate_z(
+    input_file: &str,
+    residues: &str,
+    output_file: &str,
+    spacing: &f64,
+    x_size: &f64,
+    y_size: &f64,
+) -> Result<(), Box<dyn Error>> {
+    todo!("Generate Z matrix from input file");
 }
