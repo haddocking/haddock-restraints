@@ -30,3 +30,4 @@ rand = "0.8.4"
 kd-tree = "0.6.0"
 clap = { version = "4.5", features = ["derive"] }
 nalgebra = "0.33.0"
+itertools = "0.13.0"
