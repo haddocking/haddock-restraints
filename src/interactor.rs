@@ -1,5 +1,6 @@
 use crate::sasa;
 use crate::structure;
+use core::panic;
 use serde::Deserialize;
 use std::collections::HashSet;
 
@@ -11,6 +12,7 @@ pub struct Interactor {
     active_atoms: Option<Vec<String>>,
     pub passive: HashSet<i16>,
     passive_atoms: Option<Vec<String>>,
+    wildcard: Option<String>,
     target: HashSet<u16>,
     target_distance: Option<f64>,
     lower_margin: Option<f64>,
@@ -38,6 +40,7 @@ impl Interactor {
             filter_buried_cutoff: None,
             active_atoms: None,
             passive_atoms: None,
+            wildcard: None,
             target_distance: None,
             lower_margin: None,
             upper_margin: None,
@@ -168,6 +171,10 @@ impl Interactor {
         self.passive = passive.into_iter().collect();
     }
 
+    pub fn set_wildcard(&mut self, wildcard: &str) {
+        self.wildcard = Some(wildcard.to_string());
+    }
+
     pub fn set_target_distance(&mut self, distance: f64) {
         self.target_distance = Some(distance);
     }
@@ -218,11 +225,18 @@ impl Interactor {
 
         for resnum in _active {
             let atom_str = format_atom_string(&self.active_atoms);
+            let binding = "".to_string();
+            let wildcard_str = match &self.wildcard {
+                Some(wildcard) => wildcard,
+                None => &binding,
+            };
+
             let mut assign_str = format!(
-                "assign ( resid {} and segid {}{} )",
+                "assign ( resid {} and segid {}{} {} )",
                 resnum,
                 self.chain(),
-                atom_str
+                atom_str,
+                wildcard_str
             );
 
             if multiline {
@@ -237,20 +251,28 @@ impl Interactor {
                 .map(|(index, res)| {
                     let passive_atom_str = format_atom_string(&self.passive_atoms);
 
+                    let binding = "".to_string();
+                    let wildcard_str = match &self.wildcard {
+                        Some(wildcard) => wildcard,
+                        None => &binding,
+                    };
+                    println!("Wildcard: {}", wildcard_str);
+                    println!("res_lines: {:?}", &self);
+
                     let mut res_line = String::new();
                     if multiline {
                         res_line.push_str(
                             format!(
-                                "        ( resid {} and segid {}{} )\n",
-                                res.1, res.0, passive_atom_str
+                                "        ( resid {} and segid {}{} {} )\n",
+                                res.1, res.0, passive_atom_str, wildcard_str
                             )
                             .as_str(),
                         );
                     } else {
                         res_line.push_str(
                             format!(
-                                " ( resid {} and segid {}{} )",
-                                res.1, res.0, passive_atom_str
+                                " ( resid {} and segid {}{} {} )",
+                                res.1, res.0, passive_atom_str, wildcard_str
                             )
                             .as_str(),
                         );

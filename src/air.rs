@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::interactor;
 
 pub struct Air(Vec<interactor::Interactor>);
@@ -38,6 +40,7 @@ impl Air {
             // let header = append_header(i);
             // tbl.push_str(&header);
 
+            // TODO: Refactor this logic to also collect wildcards
             let target_res = interactor::collect_resnums(partners);
             let block = interactor.create_block(target_res);
             tbl.push_str(&block);
