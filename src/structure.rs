@@ -276,12 +276,22 @@ pub fn write_beads_pdb(beads: &[Bead], filename: &str) -> std::io::Result<()> {
     for (i, bead) in beads.iter().enumerate() {
         writeln!(
             file,
-            "ATOM  {:5}  H   SHA S {:3}    {:8.3}{:8.3}{:8.3}  1.00  0.00           H",
+            "{:<6}{:>5} {:<4}{:1}{:<3} {:1}{:>4}{:1}   {:>8.3}{:>8.3}{:>8.3}{:>6.2}{:>6.2}          {:>2}{:>2}",
+            "ATOM",
             i + 1,
+            "SHA",
+            " ",
+            "SHA",
+            "S",
             i + 1,
+            " ",
             bead.position.x,
             bead.position.y,
-            bead.position.z
+            bead.position.z,
+            1.00,
+            1.00,
+            "H",
+            ""
         )?;
     }
     writeln!(file, "END")?;
@@ -322,6 +332,16 @@ pub fn get_atoms_from_resnumbers(pdb: &PDB, selection: &[isize]) -> Vec<Atom> {
         .flat_map(|res| res.atoms())
         .cloned() // This clones each &Atom into an owned Atom
         .collect()
+}
+
+pub fn move_to_origin(pdb: &mut PDB) {
+    let center = calculate_geometric_center(&pdb.atoms().cloned().collect::<Vec<_>>());
+    for atom in pdb.atoms_mut() {
+        let x = atom.x() - center.x;
+        let y = atom.y() - center.y;
+        let z = atom.z() - center.z;
+        let _ = atom.set_pos((x, y, z));
+    }
 }
 
 #[cfg(test)]

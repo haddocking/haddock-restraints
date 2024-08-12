@@ -4,7 +4,11 @@ mod interactor;
 mod sasa;
 mod structure;
 use air::Air;
+use core::panic;
 use interactor::Interactor;
+use std::fs::File;
+use std::io::BufWriter;
+use std::path::Path;
 use std::{error::Error, vec};
 
 use clap::{Parser, Subcommand};
@@ -234,81 +238,6 @@ fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> 
     Ok(())
 }
 
-// fn generate_z_restraints(
-//     input_file: &str,
-//     selections: &[Vec<isize>],
-//     grid_size: &usize,
-//     grid_spacing: &f64,
-// ) -> Result<(), Box<dyn Error>> {
-//     let pdb = match pdbtbx::open_pdb(input_file, pdbtbx::StrictnessLevel::Loose) {
-//         Ok((pdb, _warnings)) => pdb,
-//         Err(e) => {
-//             panic!("Error opening PDB file: {:?}", e);
-//         }
-//     };
-
-//     let atoms1: Vec<pdbtbx::Atom>;
-//     let atoms2: Vec<pdbtbx::Atom>;
-
-//     if selections.len() >= 2 {
-//         (atoms1, atoms2) = structure::find_furthest_selections(selections, &pdb);
-//     } else {
-//         atoms1 = structure::get_atoms_from_resnumbers(&pdb, &selections[0]);
-//         atoms2 = vec![pdbtbx::Atom::new(
-//             false, // hetero
-//             1,     // serial_number
-//             "CA",  // atom_name
-//             0.0,   // x
-//             0.0,   // y
-//             0.0,   // z
-//             1.0,   // occupancy
-//             0.0,   // b_factor
-//             "C",   // element
-//             0,     // charge
-//         )
-//         .expect("Failed to create atom")];
-//     }
-
-//     let z_axis = structure::calculate_z_axis(&atoms1, &atoms2);
-//     let center1 = structure::calculate_geometric_center(&atoms1);
-//     let center2 = structure::calculate_geometric_center(&atoms2);
-
-//     // Project endpoints onto global Z-axis and center at origin
-//     let min_z = center1.z.min(center2.z);
-//     let max_z = center1.z.max(center2.z);
-//     let mid_z = (min_z + max_z) / 2.0;
-//     let half_length = (max_z - min_z) / 2.0;
-
-//     // Project endpoints onto global Z-axis
-//     let start_z = center1.z.min(center2.z);
-//     let end_z = center1.z.max(center2.z);
-//     let start = nalgebra::Vector3::new(0.0, 0.0, start_z);
-//     let end = nalgebra::Vector3::new(0.0, 0.0, end_z);
-
-//     // // Generate beads along the global Z-axis
-//     // let num_axis_beads = 10; // Number of beads along the axis
-//     // let axis_beads = structure::generate_axis_beads(-half_length, half_length, num_axis_beads);
-
-//     // Generate grids at both ends, perpendicular to global Z-axis
-//     let grid_beads1 = structure::generate_grid_beads(-half_length, *grid_size, *grid_spacing);
-//     let grid_beads2 = structure::generate_grid_beads(half_length, *grid_size, *grid_spacing);
-
-//     let atoms3 = structure::get_atoms_from_resnumbers(&pdb, &selections[2]);
-//     let center_atoms3 = structure::calculate_geometric_center(&atoms3);
-//     let grid_beads3 = structure::generate_grid_beads(center_atoms3.z, *grid_size, *grid_spacing);
-
-//     // Combine all beads
-//     // let mut all_beads = axis_beads;
-//     let mut all_beads = Vec::new();
-//     all_beads.extend(grid_beads1);
-//     all_beads.extend(grid_beads2);
-//     all_beads.extend(grid_beads3);
-
-//     structure::write_beads_pdb(&all_beads, "z_beads.pdb")?;
-
-//     Ok(())
-// }
-
 fn generate_z_restraints(
     input_file: &str,
     selections: &[Vec<isize>],
@@ -321,6 +250,18 @@ fn generate_z_restraints(
             panic!("Error opening PDB file: {:?}", e);
         }
     };
+
+    // DEVELOPMENT, move the pdb to the origin --------------------------------------------------
+    let mut debug_pdb = pdb.clone();
+    structure::move_to_origin(&mut debug_pdb);
+    let output_path = Path::new("input.pdb");
+    let file = File::create(output_path)?;
+    pdbtbx::save_pdb_raw(
+        &debug_pdb,
+        BufWriter::new(file),
+        pdbtbx::StrictnessLevel::Strict,
+    );
+    // -----------------------------------------------------------------------------------------
 
     let atoms1: Vec<pdbtbx::Atom>;
     let atoms2: Vec<pdbtbx::Atom>;
@@ -348,28 +289,42 @@ fn generate_z_restraints(
     let center1 = structure::calculate_geometric_center(&atoms1);
     let center2 = structure::calculate_geometric_center(&atoms2);
 
-    // Generate grids centered around the geometric centers of each selection
-    let grid_beads1 = structure::generate_grid_beads(center1.z, *grid_size, *grid_spacing);
-    let grid_beads2 = structure::generate_grid_beads(center2.z, *grid_size, *grid_spacing);
+    // Project endpoints onto global Z-axis and center at origin
+    let min_z = center1.z.min(center2.z);
+    let max_z = center1.z.max(center2.z);
+    // let mid_z = (min_z + max_z) / 2.0;
+    let half_length = (max_z - min_z) / 2.0;
+
+    // Project endpoints onto global Z-axis
+    let start_z = center1.z.min(center2.z);
+    let end_z = center1.z.max(center2.z);
+    // let start = nalgebra::Vector3::new(0.0, 0.0, start_z);
+    // let end = nalgebra::Vector3::new(0.0, 0.0, end_z);
+
+    // // Generate beads along the global Z-axis
+    // let num_axis_beads = 10; // Number of beads along the axis
+    // let axis_beads = structure::generate_axis_beads(-half_length, half_length, num_axis_beads);
+
+    // Generate grids at both ends, perpendicular to global Z-axis
+    let grid_beads1 = structure::generate_grid_beads(-half_length, *grid_size, *grid_spacing);
+    let grid_beads2 = structure::generate_grid_beads(half_length, *grid_size, *grid_spacing);
+
+    // let atoms3 = structure::get_atoms_from_resnumbers(&pdb, &selections[2]);
+    // let center_atoms3 = structure::calculate_geometric_center(&atoms3);
+    // let grid_beads3 = structure::generate_grid_beads(center_atoms3.z, *grid_size, *grid_spacing);
 
     // Combine all beads
+    // let mut all_beads = axis_beads;
     let mut all_beads = Vec::new();
     all_beads.extend(grid_beads1);
     all_beads.extend(grid_beads2);
-
-    // If there's a third selection, generate a grid for it too
-    if selections.len() > 2 {
-        let atoms3 = structure::get_atoms_from_resnumbers(&pdb, &selections[2]);
-        let center3 = structure::calculate_geometric_center(&atoms3);
-        let grid_beads3 = structure::generate_grid_beads(center3.z, *grid_size, *grid_spacing);
-        all_beads.extend(grid_beads3);
-    }
+    // all_beads.extend(grid_beads3);
 
     structure::write_beads_pdb(&all_beads, "z_beads.pdb")?;
 
     Ok(())
 }
 
-// sele s1, resid 19+83+145+167 and protein
-// sele s2, resid 98+101+126+129 and protein
-// sele s3, resid 23+62+87+111+116+153+163 and protein
+// sele s1, resid 19+83+145+167 and input
+// sele s2, resid 98+101+126+129 and input
+// sele s3, resid 23+62+87+111+116+153+163 and input
