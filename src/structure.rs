@@ -11,8 +11,9 @@ use rand::SeedableRng;
 use std::fs::File;
 use std::io::Write;
 
+#[derive(Clone)]
 pub struct Bead {
-    position: Vector3<f64>,
+    pub position: Vector3<f64>,
 }
 
 pub fn neighbor_search(
