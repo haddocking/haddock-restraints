@@ -242,11 +242,11 @@ fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> 
 
 fn generate_z_restraints(
     input_file: &str,
-    residues: &Vec<Vec<isize>>,
-    output_file: &str,
-    spacing: &f64,
-    x_size: &f64,
-    y_size: &f64,
+    _residues: &[Vec<isize>],
+    _output_file: &str,
+    _spacing: &f64,
+    _x_size: &f64,
+    _y_size: &f64,
 ) -> Result<(), Box<dyn Error>> {
     let pdb = match pdbtbx::open_pdb(input_file, pdbtbx::StrictnessLevel::Loose) {
         Ok((pdb, _warnings)) => pdb,
@@ -258,7 +258,6 @@ fn generate_z_restraints(
     // DEVELOPMENT ----------------------------------------------------------------------------
     let sele1: Vec<isize> = vec![19, 83, 145, 167];
     let sele2: Vec<isize> = vec![98, 101, 126, 129];
-    // ----------------------------------------------------------------------------------------
 
     let target_residues1 = structure::get_residues(&pdb, sele1);
     let target_residues2 = structure::get_residues(&pdb, sele2);
@@ -276,28 +275,28 @@ fn generate_z_restraints(
             atoms2.push(atom.clone());
         }
     }
+    // ----------------------------------------------------------------------------------------
 
-    let z_axis = structure::calculate_z_axis(&atoms1, &atoms2);
+    let _z_axis = structure::calculate_z_axis(&atoms1, &atoms2);
     let center1 = structure::calculate_geometric_center(&atoms1);
     let center2 = structure::calculate_geometric_center(&atoms2);
 
     // Project endpoints onto global Z-axis and center at origin
     let min_z = center1.z.min(center2.z);
     let max_z = center1.z.max(center2.z);
-    let mid_z = (min_z + max_z) / 2.0;
+    let _mid_z = (min_z + max_z) / 2.0;
     let half_length = (max_z - min_z) / 2.0;
 
     // Project endpoints onto global Z-axis
     let start_z = center1.z.min(center2.z);
     let end_z = center1.z.max(center2.z);
-    let start = nalgebra::Vector3::new(0.0, 0.0, start_z);
-    let end = nalgebra::Vector3::new(0.0, 0.0, end_z);
+    let _start = nalgebra::Vector3::new(0.0, 0.0, start_z);
+    let _end = nalgebra::Vector3::new(0.0, 0.0, end_z);
 
     // Generate beads along the global Z-axis
     let num_axis_beads = 10; // Number of beads along the axis
-    let axis_beads = structure::generate_axis_beads(-half_length, half_length, num_axis_beads);
+    let _axis_beads = structure::generate_axis_beads(-half_length, half_length, num_axis_beads);
 
-    // Generate grids at both ends, perpendicular to global Z-axis
     // Generate grids at both ends, perpendicular to global Z-axis
     let grid_size = 5; // 5x5 grid
     let grid_spacing = 2.0; // 2 Angstroms between grid points
