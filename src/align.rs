@@ -15,22 +15,22 @@ impl Point {
     }
 }
 
-#[derive(Debug, Clone)]
-struct Afp {
-    first: i32,
-    second: i32,
-}
+// #[derive(Debug, Clone)]
+// struct Afp {
+//     first: i32,
+//     second: i32,
+// }
 
-impl Afp {
-    fn new(first: i32, second: i32) -> Self {
-        Afp { first, second }
-    }
-}
+// impl Afp {
+//     fn new(first: i32, second: i32) -> Self {
+//         Afp { first, second }
+//     }
+// }
 
-#[derive(Clone, Debug)]
-struct Path {
-    afps: Vec<Afp>,
-}
+// #[derive(Clone, Debug)]
+// struct Path {
+//     afps: Vec<Afp>,
+// }
 
 const D0: f64 = 3.0;
 const D1: f64 = 4.0;
@@ -222,213 +222,265 @@ fn calc_s(
     s
 }
 
-fn find_path(
-    da: &[Vec<f64>],
-    db: &[Vec<f64>],
-    s: &[Vec<f64>],
-    win_size: usize,
-) -> Vec<Vec<(i32, i32)>> {
-    let mut best_path_len = 0;
-    let mut best_path_score = f64::MAX;
-    // Longest possible alignment path
-    let longest_possible_path = if da.len() < db.len() {
-        da.len()
-    } else {
-        db.len()
-    };
+// fn find_path(
+//     da: &[Vec<f64>],
+//     db: &[Vec<f64>],
+//     s: &[Vec<f64>],
+//     win_size: usize,
+// ) -> Vec<Vec<(i32, i32)>> {
+//     let mut best_path_len = 0;
+//     let mut best_path_score = f64::MAX;
+//     // Longest possible alignment path
+//     let longest_possible_path = if da.len() < db.len() {
+//         da.len()
+//     } else {
+//         db.len()
+//     };
 
-    let win_sum = (win_size - 1) * (win_size - 2) / 2;
+//     let win_sum = (win_size - 1) * (win_size - 2) / 2;
 
-    // Create a vector to store the values
-    let mut win_cache = vec![0; longest_possible_path];
+//     // Create a vector to store the values
+//     let mut win_cache = vec![0; longest_possible_path];
 
-    // Fill the vector with the computed values
-    for i in 0..longest_possible_path {
-        win_cache[i] = ((i + 1) * i * win_size / 2) + (((i + 1) as i32 * win_sum as i32) as usize);
-    }
+//     // Fill the vector with the computed values
+//     for i in 0..longest_possible_path {
+//         win_cache[i] = ((i + 1) * i * win_size / 2) + (((i + 1) as i32 * win_sum as i32) as usize);
+//     }
 
-    let mut best_path = Path {
-        afps: vec![Afp::new(-1, -1); longest_possible_path],
-    };
+//     let mut best_path = Path {
+//         afps: vec![Afp::new(-1, -1); longest_possible_path],
+//     };
 
-    let mut all_score_buffer: Vec<Vec<f64>> =
-        vec![vec![1e6; GAP_MAX * 2 + 1]; longest_possible_path];
+//     let mut all_score_buffer: Vec<Vec<f64>> =
+//         vec![vec![1e6; GAP_MAX * 2 + 1]; longest_possible_path];
 
-    let mut t_index: Vec<i32> = vec![0; longest_possible_path];
+//     let mut t_index: Vec<i32> = vec![0; longest_possible_path];
 
-    for (i_a, _element_a) in da.iter().enumerate() {
-        // // Limit how deep this loop can go;
-        // if i_a as i32 > da.len() as i32 - (win_size * best_path.afps.len() as i32 - 1) {
-        //     continue;
-        // }
+//     for (i_a, _element_a) in da.iter().enumerate() {
+//         // // Limit how deep this loop can go;
+//         // if i_a as i32 > da.len() as i32 - (win_size * best_path.afps.len() as i32 - 1) {
+//         //     continue;
+//         // }
 
-        for (i_b, _element_b) in db.iter().enumerate() {
-            let similarity_score = s[i_a][i_b];
-            let mut current_path_len = 1;
-            t_index[current_path_len - 1] = 0;
-            // Check all possible paths starting from iA, iB
-            let mut path = Path {
-                afps: vec![Afp::new(-1, -1); longest_possible_path],
-            };
+//         for (i_b, _element_b) in db.iter().enumerate() {
+//             let similarity_score = s[i_a][i_b];
 
-            path.afps[0] = Afp::new(i_a as i32, i_b as i32);
+//             if similarity_score > D0 || similarity_score == -1.0 {
+//                 continue;
+//             }
 
-            let mut done = false;
-            while !done {
-                let mut gap_best_score = f64::MAX;
-                let mut gap_best_index = -1;
+//             let mut current_path_len = 1;
+//             // t_index[current_path_len - 1] = 0;
+//             // Check all possible paths starting from iA, iB
+//             let mut path = Path {
+//                 afps: vec![Afp::new(-1, -1); longest_possible_path],
+//             };
 
-                for g in 0..(GAP_MAX * 2) + 1 {
-                    // println!("g: {}", g);
-                    let mut j_a = path.afps[current_path_len - 1].first + win_size as i32;
-                    let mut j_b = path.afps[current_path_len - 1].second + win_size as i32;
+//             path.afps[0] = Afp::new(i_a as i32, i_b as i32);
 
-                    if j_a < 0 || j_b < 0 {
-                        continue;
-                    }
+//             println!("i_a: {} i_b: {}", i_a, i_b);
+//             let mut done = false;
+//             while !done {
+//                 let mut gap_best_score = f64::MAX;
+//                 let mut gap_best_index = -1;
+//                 println!("current_path_len: {}", current_path_len);
 
-                    if ((g + 1) % 2) == 0 {
-                        j_a += (g as i32 + 1) / 2;
-                    } else {
-                        j_b += (g as i32 + 1) / 2;
-                    }
+//                 for g in 0..(GAP_MAX * 2) + 1 {
+//                     // println!("g: {}", g);
+//                     let mut j_a = path.afps[current_path_len - 1].first + win_size as i32;
+//                     let mut j_b = path.afps[current_path_len - 1].second + win_size as i32;
 
-                    if j_a > da.len() as i32 - win_size as i32 - 1
-                        || j_b > db.len() as i32 - win_size as i32 - 1
-                    {
-                        continue;
-                    }
+//                     // if j_a < 0 || j_b < 0 {
+//                     //     continue;
+//                     // }
 
-                    if s[j_a as usize][j_b as usize] > D0 {
-                        continue;
-                    }
+//                     if ((g + 1) % 2) == 0 {
+//                         j_a += (g as i32 + 1) / 2;
+//                     } else {
+//                         j_b += (g as i32 + 1) / 2;
+//                     }
 
-                    if s[j_a as usize][j_b as usize] == -1.0 {
-                        continue;
-                    }
+//                     if j_a > da.len() as i32 - win_size as i32 - 1
+//                         || j_b > db.len() as i32 - win_size as i32 - 1
+//                     {
+//                         continue;
+//                     }
 
-                    // Calculate the score of this path
-                    let mut score = 0.0;
+//                     if s[j_a as usize][j_b as usize] > D0 {
+//                         continue;
+//                     }
 
-                    let anchor_a = path.afps[current_path_len - 1].first;
-                    let anchor_b = path.afps[current_path_len - 1].second;
+//                     if s[j_a as usize][j_b as usize] == -1.0 {
+//                         continue;
+//                     }
 
-                    // If any of the indexes are out of bounds, skip this iteration
-                    if j_a >= da.len() as i32 || j_b >= db.len() as i32 {
-                        continue;
-                    }
+//                     println!("j_a: {} j_b: {}", j_a, j_b);
 
-                    // Calculate the score
-                    score += (da[anchor_a as usize][j_a as usize]
-                        - db[anchor_b as usize][j_b as usize])
-                        .abs();
+//                     // Calculate the score of this path
+//                     let mut score = 0.0;
 
-                    score += (da[anchor_a as usize + win_size - 1][j_a as usize + win_size - 1]
-                        - db[anchor_b as usize + win_size - 1][j_b as usize + win_size - 1])
-                        .abs();
+//                     for s in 0..current_path_len {
+//                         // curScore += fabs( dA[curPath[s].first][jA] - dB[curPath[s].second][jB] );
+//                         score += (da[path.afps[s].first as usize][j_a as usize]
+//                             - db[path.afps[s].second as usize][j_b as usize])
+//                             .abs();
+//                         // curScore += fabs( dA[curPath[s].first  + (winSize-1)][jA+(winSize-1)] -
+//                         //     dB[curPath[s].second + (winSize-1)][jB+(winSize-1)] );
+//                         score += (da[path.afps[s].first as usize + win_size - 1]
+//                             [j_a as usize + win_size - 1]
+//                             - db[path.afps[s].second as usize + win_size - 1]
+//                                 [j_b as usize + win_size - 1])
+//                             .abs();
 
-                    for k in 0..win_size - 1 {
-                        score += (da[anchor_a as usize + k][j_a as usize + win_size - 1 - k]
-                            - db[anchor_b as usize + k][j_b as usize + win_size - 1 - k])
-                            .abs();
-                    }
+//                         // for ( k = 1; k < winSize-1; k++ )
+//                         for k in 1..win_size - 1 {
+//                             // curScore += fabs( dA[curPath[s].first  + k][ jA + (winSize-1) - k ] -
+//                             //     dB[curPath[s].second + k][ jB + (winSize-1) - k ] );
+//                             score += (da[path.afps[s].first as usize + k]
+//                                 [j_a as usize + win_size - 1 - k]
+//                                 - db[path.afps[s].second as usize + k]
+//                                     [j_b as usize + win_size - 1 - k])
+//                                 .abs();
+//                         }
+//                     }
 
-                    score /= win_size as f64 * current_path_len as f64;
+//                     // let anchor_a = path.afps[current_path_len - 1].first;
+//                     // let anchor_b = path.afps[current_path_len - 1].second;
 
-                    // println!("score: {}", score);
+//                     // // If any of the indexes are out of bounds, skip this iteration
+//                     // if j_a >= da.len() as i32 || j_b >= db.len() as i32 {
+//                     //     continue;
+//                     // }
 
-                    if score < gap_best_score {
-                        path.afps[current_path_len].first = j_a;
-                        path.afps[current_path_len].second = j_b;
-                        gap_best_score = score;
-                        gap_best_index = g as i32;
-                        all_score_buffer[current_path_len - 1][g] = score;
-                    }
-                } // end of gap search
+//                     // // Calculate the score
+//                     // score += (da[anchor_a as usize][j_a as usize]
+//                     //     - db[anchor_b as usize][j_b as usize])
+//                     //     .abs();
 
-                // Calculate current_total_score
-                let mut current_total_score = 0.0;
+//                     // score += (da[anchor_a as usize + win_size - 1][j_a as usize + win_size - 1]
+//                     //     - db[anchor_b as usize + win_size - 1][j_b as usize + win_size - 1])
+//                     //     .abs();
 
-                let g_a: i32;
-                let g_b: i32;
-                if gap_best_index != -1 {
-                    let j_gap = (gap_best_index + 1) / 2;
-                    if ((gap_best_index + 1) % 2) == 0 {
-                        g_a = path.afps[current_path_len - 1].first + win_size as i32 + j_gap;
-                        g_b = path.afps[current_path_len - 1].second + win_size as i32;
-                    } else {
-                        g_a = path.afps[current_path_len - 1].first + win_size as i32;
-                        g_b = path.afps[current_path_len - 1].second + win_size as i32 + j_gap;
-                    }
+//                     // for k in 0..win_size - 1 {
+//                     //     score += (da[anchor_a as usize + k][j_a as usize + win_size - 1 - k]
+//                     //         - db[anchor_b as usize + k][j_b as usize + win_size - 1 - k])
+//                     //         .abs();
+//                     // }
 
-                    let score1 = (all_score_buffer[current_path_len - 1][gap_best_index as usize]
-                        * win_size as f64
-                        * current_path_len as f64
-                        + s[g_a as usize][g_b as usize] * win_size as f64)
-                        / (win_sum as f64 * current_path_len as f64 + win_sum as f64);
+//                     score /= win_size as f64 * current_path_len as f64;
 
-                    let score2 = if current_path_len > 1 {
-                        all_score_buffer[current_path_len - 2]
-                            [t_index[current_path_len - 1] as usize]
-                    } else {
-                        s[i_a][i_b]
-                    } * win_cache[current_path_len - 1] as f64
-                        + score1
-                            * (win_cache[current_path_len] - win_cache[current_path_len - 1])
-                                as f64
-                            / win_cache[current_path_len] as f64;
+//                     // println!("score: {}", score);
 
-                    current_total_score = score2;
+//                     if score >= D1 {
+//                         continue;
+//                     }
 
-                    if current_total_score > D1 {
-                        done = true;
-                        gap_best_index -= 1;
-                        continue;
-                    } else {
-                        all_score_buffer[current_path_len - 1][gap_best_index as usize] =
-                            current_total_score;
-                        t_index[current_path_len] = gap_best_index;
-                        current_path_len += 1;
-                    }
-                } else {
-                    done = true;
-                    current_path_len -= 1;
-                    continue;
-                }
+//                     // store GAPPED best
+//                     if score < gap_best_score {
+//                         path.afps[current_path_len].first = j_a;
+//                         path.afps[current_path_len].second = j_b;
+//                         gap_best_score = score;
+//                         gap_best_index = g as i32;
+//                         all_score_buffer[current_path_len - 1][g] = score;
+//                         // println!(
+//                         //     "current score {:.2} is lower than {:.2}",
+//                         //     score, gap_best_score
+//                         // );
+//                         // println!("{:?}", path);
+//                     } else {
+//                         println!(
+//                             "current score {:.2} is lower than {:.2}",
+//                             score, gap_best_score
+//                         );
+//                     }
+//                     // println!("{:?}", path);
+//                 }
+//                 // println!("::: {:?}", path);
+//                 // end of gap search
 
-                if current_path_len > best_path_len
-                    || (current_path_len == best_path_len && current_total_score < best_path_score)
-                {
-                    best_path_len = current_path_len;
-                    best_path_score = current_total_score;
-                    best_path = path.clone();
+//                 // Calculate current_total_score
+//                 let mut current_total_score = 0.0;
 
-                    // for i in 0..current_path_len {
-                    //     best_path.afps[i] = path.afps[i];
-                    // }
-                }
+//                 let g_a: i32;
+//                 let g_b: i32;
+//                 if gap_best_index != -1 {
+//                     let j_gap = (gap_best_index + 1) / 2;
+//                     if ((gap_best_index + 1) % 2) == 0 {
+//                         g_a = path.afps[current_path_len - 1].first + win_size as i32 + j_gap;
+//                         g_b = path.afps[current_path_len - 1].second + win_size as i32;
+//                     } else {
+//                         g_a = path.afps[current_path_len - 1].first + win_size as i32;
+//                         g_b = path.afps[current_path_len - 1].second + win_size as i32 + j_gap;
+//                     }
 
-                done = true;
-            } // end loop
-        } // end ib
-    } // end ia
+//                     let score1 = (all_score_buffer[current_path_len - 1][gap_best_index as usize]
+//                         * win_size as f64
+//                         * current_path_len as f64
+//                         + s[g_a as usize][g_b as usize] * win_size as f64)
+//                         / (win_sum as f64 * current_path_len as f64 + win_sum as f64);
 
-    // Loop over the best paths and expand them into continuous lists
-    let mut result: Vec<Vec<(i32, i32)>> = Vec::new();
-    for p in best_path.afps.iter() {
-        // println!("{:?}", p);
-        let mut data: Vec<(i32, i32)> = Vec::new();
-        if p.first == -1 || p.second == -1 {
-            continue;
-        }
-        for k in 0..win_size {
-            println!("{} {}", p.first + k as i32, p.second + k as i32);
-            data.push((p.first + k as i32, p.second + k as i32));
-        }
-        result.push(data);
-    }
-    result
-}
+//                     let score2 = if current_path_len > 1 {
+//                         all_score_buffer[current_path_len - 2]
+//                             [t_index[current_path_len - 1] as usize]
+//                     } else {
+//                         s[i_a][i_b]
+//                     } * win_cache[current_path_len - 1] as f64
+//                         + score1
+//                             * (win_cache[current_path_len] - win_cache[current_path_len - 1])
+//                                 as f64
+//                             / win_cache[current_path_len] as f64;
+
+//                     current_total_score = score2;
+
+//                     if current_total_score > D1 {
+//                         done = true;
+//                         gap_best_index -= 1;
+//                         break;
+//                     } else {
+//                         all_score_buffer[current_path_len - 1][gap_best_index as usize] =
+//                             current_total_score;
+//                         t_index[current_path_len] = gap_best_index;
+//                         current_path_len += 1;
+//                     }
+//                 } else {
+//                     done = true;
+//                     current_path_len -= 1;
+//                     break;
+//                 }
+
+//                 if current_path_len > best_path_len
+//                     || (current_path_len == best_path_len && current_total_score < best_path_score)
+//                 {
+//                     best_path_len = current_path_len;
+//                     best_path_score = current_total_score;
+//                     best_path = path.clone();
+
+//                     // for i in 0..current_path_len {
+//                     //     best_path.afps[i] = path.afps[i];
+//                     // }
+//                 }
+
+//                 done = true;
+//             } // end loop
+//         } // end ib
+//     } // end ia
+
+//     // Loop over the best paths and expand them into continuous lists
+//     let mut result: Vec<Vec<(i32, i32)>> = Vec::new();
+//     // for p in best_path.afps.iter() {
+//     //     // println!("{:?}", p);
+//     //     let mut data: Vec<(i32, i32)> = Vec::new();
+//     //     if p.first == -1 || p.second == -1 {
+//     //         continue;
+//     //     }
+//     //     for k in 0..win_size {
+//     //         println!("{} {}", p.first + k as i32, p.second + k as i32);
+//     //         data.push((p.first + k as i32, p.second + k as i32));
+//     //     }
+//     //     result.push(data);
+//     // }
+//     result
+// }
 
 fn simp_align(
     mat1: &[Point],
@@ -533,6 +585,99 @@ fn simp_align(
 
     rmsd
 }
+
+// Define a structure named `Afp` with two integer members
+struct Afp {
+    first: i32,
+    second: i32,
+}
+
+// Define type aliases for pointers to `Afp`
+// type Path = *mut Afp;
+// type PathCache = *mut Path;
+
+fn find_afps(
+    d1: &[Vec<f64>],
+    d2: &[Vec<f64>],
+    s: &[Vec<f64>],
+    window_size: usize,
+    similarity_threshold: f64,
+) -> Vec<(usize, usize)> {
+    let mut afps: Vec<(usize, usize)> = Vec::new();
+
+    for i in 0..s.len() {
+        for j in 0..s[i].len() {
+            if s[i][j] >= similarity_threshold {
+                // Ensure that the fragments can fit within the protein lengths
+                if i + window_size <= d1.len() && j + window_size <= d2.len() {
+                    afps.push((i, j));
+                }
+            }
+        }
+    }
+
+    afps
+}
+
+type AFP = (usize, usize);
+type Path = Vec<AFP>;
+fn find_best_path(afps: &Vec<AFP>, s: &Vec<Vec<f64>>, window_size: usize) -> Path {
+    let mut best_path: Path = Vec::new();
+    let mut best_score: f64 = std::f64::MIN;
+
+    // Initialize a table to store paths and scores
+    let mut dp: Vec<Vec<(Path, f64)>> = vec![Vec::new(); afps.len()];
+
+    // Initialize with single AFP paths
+    for (idx, &(i, j)) in afps.iter().enumerate() {
+        let mut path = Vec::new();
+        path.push((i, j));
+        let score = s[i][j];
+        dp[idx].push((path, score));
+    }
+
+    // Limit the number of paths kept in dp
+    let max_paths_per_node = 20; // Example: limit to 1000 paths per node
+    let mut new_paths: Vec<(usize, (Path, f64))> = Vec::new();
+
+    // Extend paths
+    for i in 0..afps.len() {
+        let mut paths_to_extend: Vec<(Path, f64)> = Vec::new();
+        for &(ref path, score) in &dp[i] {
+            let &(last_i, last_j) = path.last().unwrap();
+            for (idx, &(next_i, next_j)) in afps.iter().enumerate() {
+                if next_i > last_i + window_size && next_j > last_j + window_size {
+                    let mut new_path = path.clone();
+                    new_path.push((next_i, next_j));
+                    let new_score = score + s[next_i][next_j];
+                    new_paths.push((idx, (new_path, new_score)));
+                }
+            }
+        }
+
+        // Sort new_paths by score and keep only the top max_paths_per_node
+        new_paths.sort_by(|(_, (_, score1)), (_, (_, score2))| score2.partial_cmp(score1).unwrap());
+        new_paths.truncate(max_paths_per_node);
+
+        // Update dp with the sorted and truncated new_paths
+        for (idx, (new_path, new_score)) in new_paths.drain(..) {
+            dp[idx].push((new_path, new_score));
+        }
+    }
+
+    // Find the best path
+    for paths in dp {
+        for (path, score) in paths {
+            if score > best_score {
+                best_score = score;
+                best_path = path;
+            }
+        }
+    }
+
+    best_path
+}
+
 pub fn align(input_a: &str, input_b: &str) -> Result<(), Box<dyn std::error::Error>> {
     println!("Reading input file: {}", input_a);
     println!("Reading input file: {}", input_b);
@@ -560,61 +705,77 @@ pub fn align(input_a: &str, input_b: &str) -> Result<(), Box<dyn std::error::Err
     //  - If the starting positions are valid, it initializes a new path curPath starting from (iA, iB).
     //  - The function then searches for the best path starting from this position, considering all possible gaps up to gapMax.
     // let paths = find_path(&s, &dm_a, &dm_b, 8);
-    let aln = find_path(&dm_a, &dm_b, &s, 8);
+    // let aln = find_path(&dm_a, &dm_b, &s, 8);
+    let window_size = 8;
+    let similarity_threshold = 4.0;
 
-    println!("{:?}", aln);
-    let bestPathScore = 100000;
-    for c_aln in aln {
-        // let seq_count = cur_alignment.len();
-        let mut mat_a: Option<Vec<Point>> = None;
-        let mut mat_b: Option<Vec<Point>> = None;
+    // Identify AFPs
+    let afps = find_afps(&dm_a, &dm_b, &s, window_size, similarity_threshold);
 
-        // if seq_count == 0 {
-        //     continue;
-        // }
-        for afp in &c_aln {
-            // for afp in cur_alignment.iter() {
-            // let (first, second) = afp;
-            if mat_a.is_none() && mat_b.is_none() {
-                mat_a = Some(vec![coords_a[(afp.0 - 1) as usize]]);
-                mat_b = Some(vec![coords_b[(afp.1 - 1) as usize]]);
-            } else {
-                mat_a.as_mut().unwrap().push(coords_a[(afp.0 - 1) as usize]);
-                mat_b.as_mut().unwrap().push(coords_b[(afp.1 - 1) as usize]);
-            }
-            // }
-            let rmsd = simp_align(
-                mat_a.as_ref().unwrap(),
-                mat_b.as_ref().unwrap(),
-                input_a,
-                input_b,
-                Some(&coords_a),
-                Some(&coords_b),
-                1,
-                mat_a.as_ref().unwrap().len(),
-            );
+    // Find the best path
+    let best_path = find_best_path(&afps, &s, window_size);
 
-            //     internalGaps = 0.0;
-            // for g in range(0, seqCount-1):
-            // 	if (not curAlignment[g][0] + 1 == curAlignment[g+1][0]):
-            // 		internalGaps += curAlignment[g+1][0]
-            // 	if ( not curAlignment[g][1] + 1 == curAlignment[g+1][1] ):
-            // 		internalGaps += curAlignment[g+1][1]
-
-            // 	aliLen = float( len(curAlignment))
-            // 	numGap = internalGaps;
-            // 	curScore = float((curScore/aliLen)*(1.0+(numGap/aliLen)));
-            // let mut internal_gaps = 0.0;
-            // for g in 0..c_aln.len() - 1 {
-            //     if c_aln[g].0 + 1 != c_aln[g + 1].0 {
-            //         internal_gaps += afp[g + 1][0]
-            //     }
-            //     if c_aln[g].1 + 1 != c_aln[g + 1].1 {
-            //         // internalGaps += curAlignment[g+1][1]
-            //     }
-            // }
-        }
+    // Print the best path
+    for (i, j) in best_path {
+        println!(
+            "Best path AFP starting at indices: {} in A and {} in B",
+            i, j
+        );
     }
+
+    // println!("{:?}", aln);
+    // let bestPathScore = 100000;
+    // for c_aln in aln {
+    //     // let seq_count = cur_alignment.len();
+    //     let mut mat_a: Option<Vec<Point>> = None;
+    //     let mut mat_b: Option<Vec<Point>> = None;
+
+    //     // if seq_count == 0 {
+    //     //     continue;
+    //     // }
+    //     for afp in &c_aln {
+    //         // for afp in cur_alignment.iter() {
+    //         // let (first, second) = afp;
+    //         if mat_a.is_none() && mat_b.is_none() {
+    //             mat_a = Some(vec![coords_a[(afp.0 - 1) as usize]]);
+    //             mat_b = Some(vec![coords_b[(afp.1 - 1) as usize]]);
+    //         } else {
+    //             mat_a.as_mut().unwrap().push(coords_a[(afp.0 - 1) as usize]);
+    //             mat_b.as_mut().unwrap().push(coords_b[(afp.1 - 1) as usize]);
+    //         }
+    //         // }
+    //         let rmsd = simp_align(
+    //             mat_a.as_ref().unwrap(),
+    //             mat_b.as_ref().unwrap(),
+    //             input_a,
+    //             input_b,
+    //             Some(&coords_a),
+    //             Some(&coords_b),
+    //             1,
+    //             mat_a.as_ref().unwrap().len(),
+    //         );
+
+    //         //     internalGaps = 0.0;
+    //         // for g in range(0, seqCount-1):
+    //         // 	if (not curAlignment[g][0] + 1 == curAlignment[g+1][0]):
+    //         // 		internalGaps += curAlignment[g+1][0]
+    //         // 	if ( not curAlignment[g][1] + 1 == curAlignment[g+1][1] ):
+    //         // 		internalGaps += curAlignment[g+1][1]
+
+    //         // 	aliLen = float( len(curAlignment))
+    //         // 	numGap = internalGaps;
+    //         // 	curScore = float((curScore/aliLen)*(1.0+(numGap/aliLen)));
+    //         // let mut internal_gaps = 0.0;
+    //         // for g in 0..c_aln.len() - 1 {
+    //         //     if c_aln[g].0 + 1 != c_aln[g + 1].0 {
+    //         //         internal_gaps += afp[g + 1][0]
+    //         //     }
+    //         //     if c_aln[g].1 + 1 != c_aln[g + 1].1 {
+    //         //         // internalGaps += curAlignment[g+1][1]
+    //         //     }
+    //         // }
+    //     }
+    // }
 
     // println!("{:?}", s.len());
 
