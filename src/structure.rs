@@ -1,10 +1,17 @@
 use std::collections::{HashMap, HashSet};
 
 use kd_tree::KdTree;
+use nalgebra::Vector3;
 use pdbtbx::Residue;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
+use std::fs::File;
+use std::io::Write;
+
+pub struct Bead {
+    position: Vector3<f64>,
+}
 
 pub fn neighbor_search(
     pdb: pdbtbx::PDB,
@@ -212,6 +219,72 @@ pub fn create_iter_body_gaps(
     }
 
     pairs
+}
+
+pub fn calculate_z_axis(selection1: &[pdbtbx::Atom], selection2: &[pdbtbx::Atom]) -> Vector3<f64> {
+    let center1 = calculate_geometric_center(selection1);
+    let center2 = calculate_geometric_center(selection2);
+    (center2 - center1).normalize()
+}
+
+pub fn calculate_geometric_center(atoms: &[pdbtbx::Atom]) -> Vector3<f64> {
+    let mut center = Vector3::zeros();
+    for atom in atoms {
+        center += Vector3::new(atom.x(), atom.y(), atom.z());
+    }
+    center / (atoms.len() as f64)
+}
+
+pub fn generate_axis_beads(start_z: f64, end_z: f64, num_beads: usize) -> Vec<Bead> {
+    let mut beads = Vec::with_capacity(num_beads);
+    let length = end_z - start_z;
+
+    for i in 0..num_beads {
+        let t = (i as f64) / ((num_beads - 1) as f64);
+        let z = start_z + t * length;
+        let position = Vector3::new(0.0, 0.0, z);
+        beads.push(Bead { position });
+    }
+    beads
+}
+
+pub fn generate_grid_beads(center_z: f64, grid_size: usize, spacing: f64) -> Vec<Bead> {
+    let mut beads = Vec::with_capacity(grid_size * grid_size);
+
+    let grid_offset = (grid_size as f64 - 1.0) * spacing / 2.0;
+
+    for i in 0..grid_size {
+        for j in 0..grid_size {
+            let x = (i as f64) * spacing - grid_offset;
+            let y = (j as f64) * spacing - grid_offset;
+
+            let final_pos = Vector3::new(x, y, center_z);
+            beads.push(Bead {
+                position: final_pos,
+            });
+        }
+    }
+
+    beads
+}
+
+pub fn write_beads_pdb(beads: &[Bead], filename: &str) -> std::io::Result<()> {
+    let mut file = File::create(filename)?;
+
+    for (i, bead) in beads.iter().enumerate() {
+        writeln!(
+            file,
+            "ATOM  {:5}  H   SHA S {:3}    {:8.3}{:8.3}{:8.3}  1.00  0.00           H",
+            i + 1,
+            i + 1,
+            bead.position.x,
+            bead.position.y,
+            bead.position.z
+        )?;
+    }
+    writeln!(file, "END")?;
+
+    Ok(())
 }
 
 #[cfg(test)]
