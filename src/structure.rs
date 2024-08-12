@@ -1,8 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
+use itertools::Itertools;
 use kd_tree::KdTree;
 use nalgebra::Vector3;
 use pdbtbx::Residue;
+use pdbtbx::{Atom, PDB};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
@@ -221,11 +223,11 @@ pub fn create_iter_body_gaps(
     pairs
 }
 
-pub fn calculate_z_axis(selection1: &[pdbtbx::Atom], selection2: &[pdbtbx::Atom]) -> Vector3<f64> {
-    let center1 = calculate_geometric_center(selection1);
-    let center2 = calculate_geometric_center(selection2);
-    (center2 - center1).normalize()
-}
+// pub fn calculate_z_axis(selection1: &[pdbtbx::Atom], selection2: &[pdbtbx::Atom]) -> Vector3<f64> {
+//     let center1 = calculate_geometric_center(selection1);
+//     let center2 = calculate_geometric_center(selection2);
+//     (center2 - center1).normalize()
+// }
 
 pub fn calculate_geometric_center(atoms: &[pdbtbx::Atom]) -> Vector3<f64> {
     let mut center = Vector3::zeros();
@@ -235,18 +237,18 @@ pub fn calculate_geometric_center(atoms: &[pdbtbx::Atom]) -> Vector3<f64> {
     center / (atoms.len() as f64)
 }
 
-pub fn generate_axis_beads(start_z: f64, end_z: f64, num_beads: usize) -> Vec<Bead> {
-    let mut beads = Vec::with_capacity(num_beads);
-    let length = end_z - start_z;
+// pub fn generate_axis_beads(start_z: f64, end_z: f64, num_beads: usize) -> Vec<Bead> {
+//     let mut beads = Vec::with_capacity(num_beads);
+//     let length = end_z - start_z;
 
-    for i in 0..num_beads {
-        let t = (i as f64) / ((num_beads - 1) as f64);
-        let z = start_z + t * length;
-        let position = Vector3::new(0.0, 0.0, z);
-        beads.push(Bead { position });
-    }
-    beads
-}
+//     for i in 0..num_beads {
+//         let t = (i as f64) / ((num_beads - 1) as f64);
+//         let z = start_z + t * length;
+//         let position = Vector3::new(0.0, 0.0, z);
+//         beads.push(Bead { position });
+//     }
+//     beads
+// }
 
 pub fn generate_grid_beads(center_z: f64, grid_size: usize, spacing: f64) -> Vec<Bead> {
     let mut beads = Vec::with_capacity(grid_size * grid_size);
@@ -285,6 +287,41 @@ pub fn write_beads_pdb(beads: &[Bead], filename: &str) -> std::io::Result<()> {
     writeln!(file, "END")?;
 
     Ok(())
+}
+
+pub fn find_furthest_selections(selections: &[Vec<isize>], pdb: &PDB) -> (Vec<Atom>, Vec<Atom>) {
+    let sele: HashMap<usize, (Vec<Atom>, Vector3<f64>)> = selections
+        .iter()
+        .enumerate()
+        .map(|(i, sel)| {
+            let atoms = get_atoms_from_resnumbers(pdb, sel);
+            let center = calculate_geometric_center(&atoms);
+            (i, (atoms, center))
+        })
+        .collect();
+
+    // Find the two selections that are the furthest apart
+    let mut max_distance = 0.0;
+    let mut atoms1 = Vec::new();
+    let mut atoms2 = Vec::new();
+    for (i, j) in (0..selections.len()).tuple_combinations() {
+        let distance = (sele[&i].1 - sele[&j].1).norm();
+        if distance > max_distance {
+            max_distance = distance;
+            atoms1 = sele[&i].0.clone();
+            atoms2 = sele[&j].0.clone();
+        }
+    }
+
+    (atoms1, atoms2)
+}
+
+pub fn get_atoms_from_resnumbers(pdb: &PDB, selection: &[isize]) -> Vec<Atom> {
+    pdb.residues()
+        .filter(|res| selection.contains(&res.serial_number()))
+        .flat_map(|res| res.atoms())
+        .cloned() // This clones each &Atom into an owned Atom
+        .collect()
 }
 
 #[cfg(test)]
