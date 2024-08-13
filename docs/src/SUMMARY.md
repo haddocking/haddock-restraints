@@ -9,4 +9,5 @@
   - [`ti`](./ti.md)
   - [`restraint`](./restraint.md)
   - [`interface`](./interface.md)
+  - [`z`](./z.md)
 - [Development](./development.md)
