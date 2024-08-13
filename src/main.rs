@@ -325,12 +325,15 @@ fn generate_z_restraints(
 
     let mut interactors: Vec<Interactor> = Vec::new();
     let mut counter = 0;
+    let restraint_distance = ((grid_spacing / 2.0) - 2.0).max(2.0);
     selections
         .iter()
         .enumerate()
         .for_each(|(index, selection)| {
             let beads = restraints.get(&(index)).unwrap();
             let z = beads[0].position.z;
+
+            let comparison_operator = if z >= 0.0 { "ge" } else { "le" };
 
             selection.iter().for_each(|resnum| {
                 let mut interactor_i = Interactor::new(counter);
@@ -344,12 +347,13 @@ fn generate_z_restraints(
                 interactor_i.set_active(vec![*resnum as i16]);
                 interactor_i.set_active_atoms(vec!["CA".to_string()]);
                 interactor_i.set_passive_atoms(vec!["SHA".to_string()]);
-                interactor_i.set_lower_margin(0.0);
+                interactor_i.set_target_distance(restraint_distance);
+                interactor_i.set_lower_margin(restraint_distance);
                 interactor_i.set_upper_margin(0.0);
-                interactor_i.set_target_distance(2.0);
 
                 interactor_j.set_chain("S");
-                interactor_j.set_wildcard(format!("attr z gt {:.2}", z).as_str());
+                interactor_j
+                    .set_wildcard(format!("and attr z {} {:.3}", comparison_operator, z).as_str());
 
                 interactors.push(interactor_i);
                 interactors.push(interactor_j);
