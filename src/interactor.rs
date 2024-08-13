@@ -225,7 +225,7 @@ impl Interactor {
 
         // Sort the target residues by residue number
         let mut passive_res: Vec<PassiveResidues> = passive_res.clone();
-        passive_res.sort_by(|a, b| a.res_number.cmp(&b.res_number).reverse());
+        passive_res.sort_by(|a, b| a.res_number.cmp(&b.res_number));
 
         // Check if need to use multiline separation
         let multiline = passive_res.len() > 1;
@@ -234,7 +234,7 @@ impl Interactor {
             let atom_str = format_atom_string(&self.active_atoms);
 
             let mut assign_str = format!(
-                "assign ( resid {} and segid {}{} {} )",
+                "assign ( resid {} and segid {}{} {})",
                 resnum,
                 self.chain(),
                 atom_str,
@@ -259,9 +259,9 @@ impl Interactor {
                     if multiline {
                         res_line.push_str(
                             format!(
-                                "        ( {} segid {}{} {} )\n",
+                                "        ( {} segid {}{} {})\n",
                                 res.res_number
-                                    .map_or(String::new(), |num| format!("resid {} and ", num)),
+                                    .map_or(String::new(), |num| format!("resid {} and", num)),
                                 res.chain_id,
                                 passive_atom_str,
                                 res.wildcard
@@ -271,9 +271,9 @@ impl Interactor {
                     } else {
                         res_line.push_str(
                             format!(
-                                " ( {} segid {}{} {} )",
+                                " ( {} segid {}{} {})",
                                 res.res_number
-                                    .map_or(String::new(), |num| format!("resid {} and ", num)),
+                                    .map_or(String::new(), |num| format!("resid {} and", num)),
                                 res.chain_id,
                                 passive_atom_str,
                                 res.wildcard
@@ -381,7 +381,7 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
 
-    use crate::interactor::Interactor;
+    use crate::interactor::{Interactor, PassiveResidues};
 
     #[test]
     fn test_create_block_multiline() {
@@ -389,7 +389,20 @@ mod tests {
         interactor.set_active(vec![1]);
         interactor.set_chain("A");
 
-        let observed = interactor.create_block(vec![("B", &2, Some("")), ("B", &3, Some(""))]);
+        let observed = interactor.create_block(vec![
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(2),
+                wildcard: "",
+            },
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(3),
+                wildcard: "",
+            },
+        ]);
+
+        // let observed = interactor.create_block(vec![("B", &2, Some("")), ("B", &3, Some(""))]);
 
         let block = "assign ( resid 1 and segid A )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 
@@ -402,7 +415,11 @@ mod tests {
         interactor.set_active(vec![1]);
         interactor.set_chain("A");
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
@@ -416,7 +433,11 @@ mod tests {
         interactor.set_chain("A");
         interactor.set_active_atoms(vec!["CA".to_string()]);
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block =
             "assign ( resid 1 and segid A and name CA ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
@@ -431,7 +452,11 @@ mod tests {
         interactor.set_chain("A");
         interactor.set_passive_atoms(vec!["CA".to_string()]);
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block =
             "assign ( resid 1 and segid A ) ( resid 2 and segid B and name CA ) 2.0 2.0 0.0\n\n";
@@ -447,7 +472,11 @@ mod tests {
         interactor.set_active_atoms(vec!["CA".to_string()]);
         interactor.set_passive_atoms(vec!["CB".to_string()]);
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block =
             "assign ( resid 1 and segid A and name CA ) ( resid 2 and segid B and name CB ) 2.0 2.0 0.0\n\n";
@@ -463,7 +492,18 @@ mod tests {
         interactor.set_active_atoms(vec!["CA".to_string()]);
         interactor.set_passive_atoms(vec!["CB".to_string()]);
 
-        let observed = interactor.create_block(vec![("B", &2), ("B", &3)]);
+        let observed = interactor.create_block(vec![
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(2),
+                wildcard: "",
+            },
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(3),
+                wildcard: "",
+            },
+        ]);
 
         let block = "assign ( resid 1 and segid A and name CA )\n       (\n        ( resid 2 and segid B and name CB )\n     or\n        ( resid 3 and segid B and name CB )\n       ) 2.0 2.0 0.0\n\n";
 
@@ -478,7 +518,11 @@ mod tests {
         interactor.set_target_distance(5.0);
         interactor.set_lower_margin(0.0);
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 5.0 0.0 0.0\n\n";
 
