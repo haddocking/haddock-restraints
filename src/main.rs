@@ -263,17 +263,17 @@ fn generate_z_restraints(
         }
     };
 
-    // DEVELOPMENT, move the pdb to the origin --------------------------------------------------
-    let mut debug_pdb = pdb.clone();
-    structure::move_to_origin(&mut debug_pdb);
-    let output_path = Path::new("input.pdb");
-    let file = File::create(output_path)?;
-    pdbtbx::save_pdb_raw(
-        &debug_pdb,
-        BufWriter::new(file),
-        pdbtbx::StrictnessLevel::Strict,
-    );
-    // -----------------------------------------------------------------------------------------
+    // // DEVELOPMENT, move the pdb to the origin --------------------------------------------------
+    // let mut debug_pdb = pdb.clone();
+    // structure::move_to_origin(&mut debug_pdb);
+    // let output_path = Path::new("input.pdb");
+    // let file = File::create(output_path)?;
+    // pdbtbx::save_pdb_raw(
+    //     &debug_pdb,
+    //     BufWriter::new(file),
+    //     pdbtbx::StrictnessLevel::Strict,
+    // );
+    // // -----------------------------------------------------------------------------------------
 
     let atoms1: Vec<pdbtbx::Atom>;
     let atoms2: Vec<pdbtbx::Atom>;
