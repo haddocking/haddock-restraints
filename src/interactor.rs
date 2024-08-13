@@ -144,6 +144,13 @@ impl Interactor {
         &self.passive
     }
 
+    pub fn wildcard(&self) -> &str {
+        match &self.wildcard {
+            Some(wildcard) => wildcard,
+            None => "",
+        }
+    }
+
     pub fn target(&self) -> &HashSet<u16> {
         &self.target
     }
@@ -211,32 +218,27 @@ impl Interactor {
         self.passive_atoms = Some(atoms);
     }
 
-    pub fn create_block(&self, target_res: Vec<(&str, &i16)>) -> String {
+    pub fn create_block(&self, passive_res: Vec<PassiveResidues>) -> String {
         let mut block = String::new();
         let mut _active: Vec<i16> = self.active().iter().cloned().collect();
         _active.sort();
 
         // Sort the target residues by residue number
-        let mut target_res: Vec<(&str, &i16)> = target_res.clone();
-        target_res.sort_by(|a, b| a.1.cmp(b.1));
+        let mut passive_res: Vec<PassiveResidues> = passive_res.clone();
+        passive_res.sort_by(|a, b| a.res_number.cmp(&b.res_number).reverse());
 
         // Check if need to use multiline separation
-        let multiline = target_res.len() > 1;
+        let multiline = passive_res.len() > 1;
 
         for resnum in _active {
             let atom_str = format_atom_string(&self.active_atoms);
-            let binding = "".to_string();
-            let wildcard_str = match &self.wildcard {
-                Some(wildcard) => wildcard,
-                None => &binding,
-            };
 
             let mut assign_str = format!(
                 "assign ( resid {} and segid {}{} {} )",
                 resnum,
                 self.chain(),
                 atom_str,
-                wildcard_str
+                &self.wildcard()
             );
 
             if multiline {
@@ -245,40 +247,42 @@ impl Interactor {
 
             block.push_str(assign_str.as_str());
 
-            let res_lines: Vec<String> = target_res
+            // panic!("Target res: {:?}", target_res);
+
+            let res_lines: Vec<String> = passive_res
                 .iter()
                 .enumerate()
                 .map(|(index, res)| {
                     let passive_atom_str = format_atom_string(&self.passive_atoms);
 
-                    let binding = "".to_string();
-                    let wildcard_str = match &self.wildcard {
-                        Some(wildcard) => wildcard,
-                        None => &binding,
-                    };
-                    println!("Wildcard: {}", wildcard_str);
-                    println!("res_lines: {:?}", &self);
-
                     let mut res_line = String::new();
                     if multiline {
                         res_line.push_str(
                             format!(
-                                "        ( resid {} and segid {}{} {} )\n",
-                                res.1, res.0, passive_atom_str, wildcard_str
+                                "        ( {} segid {}{} {} )\n",
+                                res.res_number
+                                    .map_or(String::new(), |num| format!("resid {} and ", num)),
+                                res.chain_id,
+                                passive_atom_str,
+                                res.wildcard
                             )
                             .as_str(),
                         );
                     } else {
                         res_line.push_str(
                             format!(
-                                " ( resid {} and segid {}{} {} )",
-                                res.1, res.0, passive_atom_str, wildcard_str
+                                " ( {} segid {}{} {} )",
+                                res.res_number
+                                    .map_or(String::new(), |num| format!("resid {} and ", num)),
+                                res.chain_id,
+                                passive_atom_str,
+                                res.wildcard
                             )
                             .as_str(),
                         );
                     }
 
-                    if index != target_res.len() - 1 {
+                    if index != passive_res.len() - 1 {
                         res_line.push_str("     or\n");
                     }
                     res_line
@@ -302,11 +306,39 @@ impl Interactor {
     }
 }
 
-pub fn collect_resnums(interactors: Vec<&Interactor>) -> Vec<(&str, &i16)> {
-    let mut resnums = Vec::<(&str, &i16)>::new();
+#[derive(Debug, Clone)]
+pub struct PassiveResidues<'a> {
+    chain_id: &'a str,
+    res_number: Option<i16>,
+    wildcard: &'a str,
+}
+
+pub fn collect_residues(interactors: Vec<&Interactor>) -> Vec<PassiveResidues> {
+    let mut resnums = Vec::new();
     for interactor in interactors {
-        resnums.extend(interactor.active().iter().map(|x| (interactor.chain(), x)));
-        resnums.extend(interactor.passive().iter().map(|x| (interactor.chain(), x)));
+        let active = interactor.active().iter().map(|&x| PassiveResidues {
+            chain_id: interactor.chain(),
+            res_number: Some(x),
+            wildcard: interactor.wildcard(),
+        });
+
+        let passive = interactor.passive().iter().map(|&x| PassiveResidues {
+            chain_id: interactor.chain(),
+            res_number: Some(x),
+            wildcard: interactor.wildcard(),
+        });
+
+        resnums.extend(active);
+        resnums.extend(passive);
+
+        // If both active and passive are empty, add a single ResidueIdentifier with None as res_number
+        if interactor.active().is_empty() && interactor.passive().is_empty() {
+            resnums.push(PassiveResidues {
+                chain_id: interactor.chain(),
+                res_number: None,
+                wildcard: interactor.wildcard(),
+            });
+        }
     }
     resnums
 }
@@ -357,7 +389,7 @@ mod tests {
         interactor.set_active(vec![1]);
         interactor.set_chain("A");
 
-        let observed = interactor.create_block(vec![("B", &2), ("B", &3)]);
+        let observed = interactor.create_block(vec![("B", &2, Some("")), ("B", &3, Some(""))]);
 
         let block = "assign ( resid 1 and segid A )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 

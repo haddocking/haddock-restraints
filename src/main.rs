@@ -350,13 +350,13 @@ fn generate_z_restraints(
                 interactor_i.set_chain("A");
                 interactor_i.set_active(vec![*resnum as i16]);
                 interactor_i.set_active_atoms(vec!["CA".to_string()]);
+                interactor_i.set_passive_atoms(vec!["SHA".to_string()]);
                 interactor_i.set_lower_margin(0.0);
                 interactor_i.set_upper_margin(0.0);
                 interactor_i.set_target_distance(2.0);
 
                 interactor_j.set_chain("S");
-                interactor_j.set_active_atoms(vec!["SHA".to_string()]);
-                interactor_j.set_wildcard(format!("attr z gt {:?}", z).as_str());
+                interactor_j.set_wildcard(format!("attr z gt {:.2}", z).as_str());
 
                 interactors.push(interactor_i);
                 interactors.push(interactor_j);
