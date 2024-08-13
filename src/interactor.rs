@@ -376,8 +376,6 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
     }
 }
 
-// pub fn format_oneline_assign_string()
-
 #[cfg(test)]
 mod tests {
 

@@ -50,13 +50,22 @@ enum Commands {
     },
 
     Z {
-        #[arg(help = "Input file")]
+        #[arg(required = true, help = "Input file")]
         input: String,
+        #[arg(
+            required = true,
+            help = "Filename of the output shape beads to be used in Z-restraints"
+        )]
+        output: String,
         #[arg(long, required = true, help = "Group of residue indexes (can be specified multiple times)", value_parser = parse_residues, number_of_values = 1)]
         residues: Vec<Vec<isize>>,
-        #[arg(help = "Spacing between two beads in Angstrom", default_value = "2.0")]
+        #[arg(
+            required = true,
+            help = "Spacing between two beads in Angstrom",
+            default_value = "2.0"
+        )]
         grid_spacing: f64,
-        #[arg(help = "Size in xy dimension", default_value = "10")]
+        #[arg(required = true, help = "Size in xy dimension", default_value = "10")]
         grid_size: usize,
     },
 }
@@ -90,11 +99,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Z {
             input,
+            output,
             residues,
             grid_size,
             grid_spacing,
         } => {
-            let _ = generate_z_restraints(input, residues, grid_size, grid_spacing);
+            let _ = generate_z_restraints(input, output, residues, grid_size, grid_spacing);
         }
     }
 
@@ -241,6 +251,7 @@ fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> 
 
 fn generate_z_restraints(
     input_file: &str,
+    output_file: &str,
     selections: &[Vec<isize>],
     grid_size: &usize,
     grid_spacing: &f64,
@@ -273,19 +284,10 @@ fn generate_z_restraints(
         (atoms1, atoms2) = structure::find_furthest_selections(selections, &pdb);
     } else {
         atoms1 = structure::get_atoms_from_resnumbers(&pdb, &selections[0]);
-        atoms2 = vec![pdbtbx::Atom::new(
-            false, // hetero
-            1,     // serial_number
-            "CA",  // atom_name
-            0.0,   // x
-            0.0,   // y
-            0.0,   // z
-            1.0,   // occupancy
-            0.0,   // b_factor
-            "C",   // element
-            0,     // charge
-        )
-        .expect("Failed to create atom")];
+        atoms2 = vec![
+            pdbtbx::Atom::new(false, 1, "CA", 0.0, 0.0, 0.0, 1.0, 0.0, "C", 0)
+                .expect("Failed to create atom"),
+        ];
     }
 
     // let z_axis = structure::calculate_z_axis(&atoms1, &atoms2);
@@ -326,7 +328,8 @@ fn generate_z_restraints(
     all_beads.extend(grid_beads2);
     // all_beads.extend(grid_beads3);
 
-    structure::write_beads_pdb(&all_beads, "z_beads.pdb")?;
+    // Write the beads to a PDB file
+    structure::write_beads_pdb(&all_beads, output_file)?;
 
     let mut interactors: Vec<Interactor> = Vec::new();
     let mut counter = 0;
@@ -362,10 +365,6 @@ fn generate_z_restraints(
                 interactors.push(interactor_j);
             });
         });
-
-    // interactors.iter().for_each(|interactor| {
-    //     println!("Interactor: {:?}", interactor);
-    // });
 
     let air = Air::new(interactors);
     let tbl = air.gen_tbl().unwrap();
