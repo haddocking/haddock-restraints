@@ -278,7 +278,7 @@ fn generate_z_restraints(
     let atoms1: Vec<pdbtbx::Atom>;
     let atoms2: Vec<pdbtbx::Atom>;
 
-    let mut restraints: HashMap<isize, Vec<structure::Bead>> = HashMap::new();
+    let mut restraints: HashMap<usize, Vec<structure::Bead>> = HashMap::new();
 
     if selections.len() >= 2 {
         (atoms1, atoms2) = structure::find_furthest_selections(selections, &pdb);
@@ -290,25 +290,13 @@ fn generate_z_restraints(
         ];
     }
 
-    // let z_axis = structure::calculate_z_axis(&atoms1, &atoms2);
     let center1 = structure::calculate_geometric_center(&atoms1);
     let center2 = structure::calculate_geometric_center(&atoms2);
 
     // Project endpoints onto global Z-axis and center at origin
     let min_z = center1.z.min(center2.z);
     let max_z = center1.z.max(center2.z);
-    // let mid_z = (min_z + max_z) / 2.0;
     let half_length = (max_z - min_z) / 2.0;
-
-    // Project endpoints onto global Z-axis
-    // let start_z = center1.z.min(center2.z);
-    // let end_z = center1.z.max(center2.z);
-    // let start = nalgebra::Vector3::new(0.0, 0.0, start_z);
-    // let end = nalgebra::Vector3::new(0.0, 0.0, end_z);
-
-    // // Generate beads along the global Z-axis
-    // let num_axis_beads = 10; // Number of beads along the axis
-    // let axis_beads = structure::generate_axis_beads(-half_length, half_length, num_axis_beads);
 
     // Generate grids at both ends, perpendicular to global Z-axis
     let grid_beads1 = structure::generate_grid_beads(-half_length, *grid_size, *grid_spacing);
@@ -317,16 +305,20 @@ fn generate_z_restraints(
     restraints.insert(0, grid_beads1.clone());
     restraints.insert(1, grid_beads2.clone());
 
-    // let atoms3 = structure::get_atoms_from_resnumbers(&pdb, &selections[2]);
-    // let center_atoms3 = structure::calculate_geometric_center(&atoms3);
-    // let grid_beads3 = structure::generate_grid_beads(center_atoms3.z, *grid_size, *grid_spacing);
-
-    // Combine all beads
-    // let mut all_beads = axis_beads;
     let mut all_beads = Vec::new();
     all_beads.extend(grid_beads1);
     all_beads.extend(grid_beads2);
-    // all_beads.extend(grid_beads3);
+
+    // It can be that `selections` contains more than 2 selections, if that's the case, we need to place more grids in between
+    if selections.len() > 2 {
+        for (i, selection) in selections.iter().enumerate().skip(2) {
+            let atoms = structure::get_atoms_from_resnumbers(&pdb, selection);
+            let center = structure::calculate_geometric_center(&atoms);
+            let grid_beads = structure::generate_grid_beads(center.z, *grid_size, *grid_spacing);
+            restraints.insert(i, grid_beads.clone());
+            all_beads.extend(grid_beads);
+        }
+    }
 
     // Write the beads to a PDB file
     structure::write_beads_pdb(&all_beads, output_file)?;
@@ -337,10 +329,8 @@ fn generate_z_restraints(
         .iter()
         .enumerate()
         .for_each(|(index, selection)| {
-            let beads = restraints.get(&(index as isize)).unwrap();
-            // Get the z coordinates of the first bead
+            let beads = restraints.get(&(index)).unwrap();
             let z = beads[0].position.z;
-            //
 
             selection.iter().for_each(|resnum| {
                 let mut interactor_i = Interactor::new(counter);

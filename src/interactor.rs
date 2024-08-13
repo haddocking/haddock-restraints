@@ -400,8 +400,6 @@ mod tests {
             },
         ]);
 
-        // let observed = interactor.create_block(vec![("B", &2, Some("")), ("B", &3, Some(""))]);
-
         let block = "assign ( resid 1 and segid A )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
