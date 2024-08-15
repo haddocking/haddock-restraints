@@ -66,6 +66,44 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// Generates a table of Ambiguous Interaction Restraints (AIRs) based on input data.
+///
+/// This function reads interactor data from a JSON file, processes the interactors
+/// according to specified flags, and generates a table of AIRs.
+///
+/// # Arguments
+///
+/// * `input_file` - A string slice that holds the path to the input JSON file.
+///
+/// # Functionality
+///
+/// 1. Reads interactor data from the specified JSON file.
+/// 2. For each interactor with a non-empty structure:
+///    a. If `passive_from_active` is set, derives passive residues from active ones.
+///    b. If `surface_as_passive` is set, treats surface residues as passive.
+///    c. If `filter_buried` is set, removes buried residues from consideration.
+/// 3. Creates an `Air` instance from the processed interactors.
+/// 4. Generates a table of AIRs.
+/// 5. Prints the generated table to stdout.
+///
+/// # Panics
+///
+/// This function will panic if:
+/// - The JSON file cannot be read or parsed.
+/// - The `Air` instance fails to generate the table.
+///
+/// # Notes
+///
+/// - The function assumes that the JSON file is properly formatted and contains valid interactor data.
+/// - The output is printed directly to stdout and is not returned or saved to a file.
+/// - Error handling is minimal; most errors will result in a panic.
+///
+/// # Dependencies
+///
+/// This function relies on several other modules and functions:
+/// - `input::read_json_file` for reading the JSON input.
+/// - `Air` struct and its methods for processing the interactors and generating the table.
+/// - Various methods on the `Interactor` struct for processing individual interactors.
 fn gen_tbl(input_file: &str) {
     let mut interactors = input::read_json_file(input_file).unwrap();
 
@@ -91,6 +129,48 @@ fn gen_tbl(input_file: &str) {
     println!("{}", tbl);
 }
 
+/// Analyzes the true interface of a protein structure and generates Ambiguous Interaction Restraints (AIRs).
+///
+/// This function reads a PDB file, identifies the true interface between chains based on a distance cutoff,
+/// creates interactors for each chain involved in the interface, and generates AIRs.
+///
+/// # Arguments
+///
+/// * `input_pdb` - A string slice that holds the path to the input PDB file.
+/// * `cutoff` - A reference to a f64 value specifying the distance cutoff (in Angstroms) for determining interfaces.
+///
+/// # Returns
+///
+/// A `Result<(), Box<dyn Error>>` which is Ok(()) if the function completes successfully, or an Error if something goes wrong.
+///
+/// # Functionality
+///
+/// 1. Opens and parses the PDB file.
+/// 2. Identifies the true interface residues and chains in contact using the specified cutoff.
+/// 3. Creates `Interactor` instances for each chain involved in the interface.
+/// 4. Assigns active residues and target chains to each interactor.
+/// 5. Generates AIRs using the created interactors.
+/// 6. Prints the generated AIR table to stdout.
+///
+/// # Panics
+///
+/// This function will panic if:
+/// - The PDB file cannot be opened or parsed.
+///
+/// # Notes
+///
+/// - The function uses a loose strictness level when parsing the PDB file.
+/// - The true interface is determined based on the provided distance cutoff.
+/// - Interactors are created only for chains that are part of the identified interface.
+/// - The output is printed directly to stdout and is not returned or saved to a file.
+///
+/// # Dependencies
+///
+/// This function relies on several other modules and functions:
+/// - `pdbtbx` for opening and parsing PDB files.
+/// - `structure::get_true_interface` and `structure::get_chains_in_contact` for interface analysis.
+/// - `Interactor` struct for representing protein chains and their interactions.
+/// - `Air` struct for generating the AIR table.
 fn true_interface(input_pdb: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
     let pdb = match pdbtbx::open_pdb(input_pdb, pdbtbx::StrictnessLevel::Loose) {
         Ok((pdb, _warnings)) => pdb,
@@ -136,6 +216,53 @@ fn true_interface(input_pdb: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Generates distance restraints between non-contiguous bodies in a protein structure.
+///
+/// This function analyzes a PDB file to identify separate bodies within the protein structure,
+/// calculates gaps between these bodies, and generates Ambiguous Interaction Restraints (AIRs)
+/// to maintain the relative positions of these bodies.
+///
+/// # Arguments
+///
+/// * `input_file` - A string slice that holds the path to the input PDB file.
+///
+/// # Returns
+///
+/// A `Result<(), Box<dyn Error>>` which is Ok(()) if the function completes successfully,
+/// or an Error if something goes wrong.
+///
+/// # Functionality
+///
+/// 1. Opens and parses the PDB file using a loose strictness level.
+/// 2. Identifies separate bodies within the protein structure.
+/// 3. Calculates gaps between these bodies.
+/// 4. For each gap:
+///    a. Creates two interactors, one for each side of the gap.
+///    b. Sets up the interactors with appropriate chain, residue, and atom information.
+///    c. Configures distance restraints based on the gap distance.
+/// 5. Generates AIRs using the created interactors.
+/// 6. Prints the generated AIR table to stdout.
+///
+/// # Panics
+///
+/// This function will panic if:
+/// - The PDB file cannot be opened or parsed.
+///
+/// # Notes
+///
+/// - The function uses a loose strictness level when parsing the PDB file.
+/// - Interactors are created in pairs, one for each side of a gap between bodies.
+/// - The distance restraints are set to exactly match the gap distance (lower and upper margins are set to 0.0).
+/// - The output is printed directly to stdout and is not returned or saved to a file.
+///
+/// # Dependencies
+///
+/// This function relies on several other modules and functions:
+/// - `pdbtbx` for opening and parsing PDB files.
+/// - `structure::find_bodies` for identifying separate bodies in the protein structure.
+/// - `structure::create_iter_body_gaps` for calculating gaps between bodies.
+/// - `Interactor` struct for representing parts of the protein involved in restraints.
+/// - `Air` struct for generating the AIR table.
 fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
     // Read PDB file
     let pdb = match pdbtbx::open_pdb(input_file, pdbtbx::StrictnessLevel::Loose) {
@@ -184,6 +311,56 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Lists the interface residues for each chain in a protein structure.
+///
+/// This function analyzes a PDB file to identify the interface residues between chains
+/// based on a specified distance cutoff, and prints the results.
+///
+/// # Arguments
+///
+/// * `input_file` - A string slice that holds the path to the input PDB file.
+/// * `cutoff` - A reference to a f64 value specifying the distance cutoff (in Angstroms)
+///              for determining interface residues.
+///
+/// # Returns
+///
+/// A `Result<(), Box<dyn Error>>` which is Ok(()) if the function completes successfully,
+/// or an Error if something goes wrong.
+///
+/// # Functionality
+///
+/// 1. Opens and parses the PDB file using a loose strictness level.
+/// 2. Identifies the interface residues using the specified cutoff distance.
+/// 3. For each chain involved in the interface:
+///    a. Sorts the interface residues.
+///    b. Prints the chain ID and the sorted list of interface residue numbers.
+///
+/// # Panics
+///
+/// This function will panic if:
+/// - The PDB file cannot be opened or parsed.
+///
+/// # Output Format
+///
+/// The function prints to stdout in the following format:
+/// ```
+/// Chain A: [1, 2, 3, 4, 5]
+/// Chain B: [10, 11, 12, 13]
+/// ```
+/// Where each line represents a chain involved in the interface, followed by a sorted list
+/// of its interface residue numbers.
+///
+/// # Notes
+///
+/// - The function uses a loose strictness level when parsing the PDB file.
+/// - Interface residues are determined based on the provided distance cutoff.
+/// - The output is printed directly to stdout and is not returned or saved to a file.
+///
+/// # Dependencies
+///
+/// This function relies on several other modules and functions:
+/// - `pdbtbx` for opening and parsing PDB files.
+/// - `structure::get_true_interface` for identifying interface residues.
 fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
     let pdb = match pdbtbx::open_pdb(input_file, pdbtbx::StrictnessLevel::Loose) {
         Ok((pdb, _warnings)) => pdb,
