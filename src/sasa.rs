@@ -2,29 +2,65 @@ use freesasa_rs::{set_verbosity, structure::Structure, FreesasaVerbosity};
 use pdbtbx::{Atom, Residue};
 use std::process;
 
+/// Represents an atom with additional solvent accessible surface area (SASA) information.
 #[derive(Debug)]
 pub struct ExtendedAtom {
+    /// The underlying atom.
     pub atom: Atom,
+    /// The solvent accessible surface area of the atom.
     pub sasa: f64,
 }
 
 impl ExtendedAtom {
+    /// Creates a new `ExtendedAtom` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `atom` - The underlying `Atom` object.
+    /// * `sasa` - The solvent accessible surface area of the atom.
+    ///
+    /// # Returns
+    ///
+    /// A new `ExtendedAtom` instance.
     pub fn new(atom: Atom, sasa: f64) -> Self {
         ExtendedAtom { atom, sasa }
     }
 }
 
+/// Represents a residue with extended SASA information.
 pub struct ExtendedRes {
+    /// The underlying residue.
     pub residue: Residue,
+    /// The chain identifier of the residue.
     pub chain: String,
+    /// The SASA of the backbone atoms.
     pub sasa_bb: f64,
+    /// The SASA of the side chain atoms.
     pub sasa_sc: f64,
+    /// The relative SASA of the backbone atoms.
     pub rel_sasa_bb: f64,
+    /// The relative SASA of the side chain atoms.
     pub rel_sasa_sc: f64,
+    /// The total relative SASA of the residue.
     pub rel_sasa_total: f64,
 }
 
 impl ExtendedRes {
+    /// Creates a new `ExtendedRes` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `residue` - The underlying `Residue` object.
+    /// * `chain` - The chain identifier of the residue.
+    /// * `sasa_bb` - The SASA of the backbone atoms.
+    /// * `sasa_sc` - The SASA of the side chain atoms.
+    /// * `rel_sasa_bb` - The relative SASA of the backbone atoms.
+    /// * `rel_sasa_sc` - The relative SASA of the side chain atoms.
+    /// * `rel_sasa_total` - The total relative SASA of the residue.
+    ///
+    /// # Returns
+    ///
+    /// A new `ExtendedRes` instance.
     pub fn new(
         residue: Residue,
         chain: String,
@@ -46,6 +82,39 @@ impl ExtendedRes {
     }
 }
 
+/// Calculates the Solvent Accessible Surface Area (SASA) for a given PDB structure.
+///
+/// This function performs SASA calculations for each atom in the structure and aggregates
+/// the results at the residue level. It also calculates relative SASA values based on
+/// standard accessible surface areas for each residue type.
+///
+/// # Arguments
+///
+/// * `pdbtbx_struct` - A mutable reference to a `pdbtbx::PDB` structure.
+///
+/// # Returns
+///
+/// A `Vec<ExtendedRes>` containing SASA information for each residue in the structure.
+///
+/// # Panics
+///
+/// This function will panic if:
+/// - The number of atoms in the pdbtbx structure doesn't match the number of atoms in the SASA calculation.
+/// - A residue name is encountered that doesn't have a corresponding relative accessibility value.
+///
+/// # Steps
+///
+/// 1. Calculates SASA for each atom using the freesasa library.
+/// 2. Creates `ExtendedAtom` instances for each atom, storing SASA values.
+/// 3. Aggregates atom SASA values into `ExtendedRes` instances for each residue.
+/// 4. Calculates relative SASA values for backbone, side chain, and total residue.
+///
+/// # Notes
+///
+/// - The function modifies the input `pdbtbx_struct` by setting B-factors to SASA values.
+/// - SASA calculations are performed using the freesasa library with error-only verbosity.
+/// - Relative SASA values are calculated based on standard accessible surface areas defined in `REL_ASA`.
+///
 pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
     // ================================================================================
     // Calculate the SASA of each atom
@@ -147,9 +216,17 @@ pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
     extended_residues
 }
 
+/// Represents the Accessible Surface Area (ASA) values for a residue.
+///
+/// This struct holds the total ASA and its breakdown into backbone (bb) and side chain (sc) components.
 pub struct AsaValues {
+    /// The total Accessible Surface Area.
     pub total: f64,
+
+    /// The Accessible Surface Area of the backbone atoms.
     pub bb: f64,
+
+    /// The Accessible Surface Area of the side chain atoms.
     pub sc: f64,
 }
 

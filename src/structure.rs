@@ -16,6 +16,40 @@ pub struct Bead {
     pub position: Vector3<f64>,
 }
 
+/// Performs a neighbor search for residues within a specified radius of target residues.
+///
+/// This function uses a K-d tree to efficiently find residues that are within a given radius
+/// of any atom in the target residues.
+///
+/// # Arguments
+///
+/// * `pdb` - A `pdbtbx::PDB` structure representing the entire protein.
+/// * `target_residues_numbers` - A vector of references to `pdbtbx::Residue` objects representing the target residues.
+/// * `radius` - A `f64` value specifying the search radius in Angstroms.
+///
+/// # Returns
+///
+/// A `Vec<isize>` containing the sorted serial numbers of residues that are within the specified
+/// radius of any atom in the target residues, excluding the target residues themselves.
+///
+/// # Algorithm
+///
+/// 1. Constructs a K-d tree from all atom coordinates in the PDB structure.
+/// 2. For each atom in the target residues:
+///    a. Performs a radius search in the K-d tree.
+///    b. Identifies the residues corresponding to the atoms found in the search.
+/// 3. Removes the target residues from the result set.
+/// 4. Sorts the resulting residue serial numbers.
+///
+/// # Notes
+///
+/// - The function uses the `KdTree` data structure for efficient spatial searching.
+/// - The current implementation may have performance bottlenecks in the atom-to-residue mapping step.
+/// - The function assumes that atom coordinates are unique for identification purposes.
+///
+/// # TODO
+///
+/// - Optimize the atom-to-residue mapping step for better performance.
 pub fn neighbor_search(
     pdb: pdbtbx::PDB,
     target_residues_numbers: Vec<&pdbtbx::Residue>,
@@ -77,6 +111,31 @@ pub fn neighbor_search(
     result
 }
 
+/// Retrieves specific residues from a PDB structure based on their serial numbers.
+///
+/// # Arguments
+///
+/// * `pdb` - A reference to a `pdbtbx::PDB` structure representing the entire protein.
+/// * `target` - A vector of `isize` values representing the serial numbers of the residues to retrieve.
+///
+/// # Returns
+///
+/// A `Vec<&Residue>` containing references to the residues whose serial numbers match those in the `target` vector.
+///
+/// # Example
+///
+/// ```
+/// let pdb = pdbtbx::PDB::from_file("protein.pdb").unwrap();
+/// let target_serials = vec![1, 3, 5];
+/// let selected_residues = get_residues(&pdb, target_serials);
+/// ```
+///
+/// # Notes
+///
+/// - This function performs a linear search through all residues in the PDB structure.
+/// - The order of residues in the result vector matches the order they appear in the PDB structure,
+///   not necessarily the order of serial numbers in the `target` vector.
+/// - If a serial number in `target` doesn't match any residue in the PDB, it is simply ignored.
 pub fn get_residues(pdb: &pdbtbx::PDB, target: Vec<isize>) -> Vec<&Residue> {
     let mut result: Vec<&Residue> = Vec::new();
     for residue in pdb.residues() {
@@ -87,6 +146,36 @@ pub fn get_residues(pdb: &pdbtbx::PDB, target: Vec<isize>) -> Vec<&Residue> {
     result
 }
 
+/// Identifies the true interface residues between chains in a PDB structure.
+///
+/// This function determines interface residues by finding pairs of residues from different chains
+/// that have atoms within a specified cutoff distance of each other.
+///
+/// # Arguments
+///
+/// * `pdb` - A reference to a `pdbtbx::PDB` structure representing the entire protein.
+/// * `cutoff` - A `f64` value specifying the maximum distance (in Angstroms) between atoms
+///              for residues to be considered part of the interface.
+///
+/// # Returns
+///
+/// A `HashMap<String, HashSet<isize>>` where:
+/// - The keys are chain identifiers (as strings).
+/// - The values are `HashSet`s of residue serial numbers (as `isize`) that are part of the interface for that chain.
+///
+/// # Algorithm
+///
+/// 1. Iterates over all pairs of chains in the PDB structure.
+/// 2. For each pair of chains, compares all residues between the two chains.
+/// 3. For each pair of residues, checks if any pair of atoms (one from each residue) is within the cutoff distance.
+/// 4. If atoms are within the cutoff, both residues are added to the interface set for their respective chains.
+///
+/// # Notes
+///
+/// - This function performs an exhaustive search, which may be computationally expensive for large structures.
+/// - The cutoff is applied to atom-atom distances, not residue-residue distances.
+/// - A residue is considered part of the interface if any of its atoms are within the cutoff of any atom in a residue from another chain.
+/// - The function does not distinguish between different types of atoms or residues.
 pub fn get_true_interface(pdb: &pdbtbx::PDB, cutoff: f64) -> HashMap<String, HashSet<isize>> {
     let mut true_interface: HashMap<String, HashSet<isize>> = HashMap::new();
     for chain_i in pdb.chains() {
@@ -120,6 +209,36 @@ pub fn get_true_interface(pdb: &pdbtbx::PDB, cutoff: f64) -> HashMap<String, Has
     true_interface
 }
 
+/// Identifies pairs of chains in a PDB structure that are in contact with each other.
+///
+/// This function determines which chains are in contact by finding pairs of residues from different chains
+/// that have atoms within a specified cutoff distance of each other.
+///
+/// # Arguments
+///
+/// * `pdb` - A reference to a `pdbtbx::PDB` structure representing the entire protein.
+/// * `cutoff` - A `f64` value specifying the maximum distance (in Angstroms) between atoms
+///              for chains to be considered in contact.
+///
+/// # Returns
+///
+/// A `HashSet<(String, String)>` where each tuple represents a pair of chain identifiers that are in contact.
+/// The order of chain identifiers in each tuple is arbitrary.
+///
+/// # Algorithm
+///
+/// 1. Iterates over all pairs of chains in the PDB structure.
+/// 2. For each pair of chains, compares all residues between the two chains.
+/// 3. For each pair of residues, checks if any pair of atoms (one from each residue) is within the cutoff distance.
+/// 4. If atoms are within the cutoff, the pair of chain identifiers is added to the result set.
+///
+/// # Notes
+///
+/// - This function performs an exhaustive search, which may be computationally expensive for large structures.
+/// - The cutoff is applied to atom-atom distances, not residue-residue or chain-chain distances.
+/// - A pair of chains is considered in contact if any atom from one chain is within the cutoff distance of any atom from the other chain.
+/// - The function does not distinguish between different types of atoms or residues.
+/// - Each pair of chains appears only once in the result set, regardless of the number of contacts between them.
 pub fn get_chains_in_contact(pdb: &pdbtbx::PDB, cutoff: f64) -> HashSet<(String, String)> {
     let mut chains_in_contact: HashSet<(String, String)> = HashSet::new();
 
@@ -148,16 +267,65 @@ pub fn get_chains_in_contact(pdb: &pdbtbx::PDB, cutoff: f64) -> HashSet<(String,
     chains_in_contact
 }
 
+/// Represents a gap between two residues in a protein chain.
+///
+/// A `Gap` is defined by two residues that are sequential in the primary structure
+/// but have a distance between their atoms that exceeds a certain threshold in the
+/// tertiary structure.
 #[derive(Debug)]
 pub struct Gap {
+    /// The chain identifier where the gap is located.
     pub chain: String,
+
+    /// The name of the atom in the first residue used for distance calculation.
     pub atom_i: String,
+
+    /// The name of the atom in the second residue used for distance calculation.
     pub atom_j: String,
+
+    /// The sequence number of the first residue.
     pub res_i: isize,
+
+    /// The sequence number of the second residue.
     pub res_j: isize,
+
+    /// The distance between the specified atoms of the two residues.
     pub distance: f64,
 }
 
+/// Identifies separate bodies within a protein structure based on CA atom distances.
+///
+/// This function segments the protein into separate "bodies" by analyzing the distances
+/// between consecutive CA (alpha carbon) atoms in each chain. A new body is defined when
+/// the distance between consecutive CA atoms exceeds 4 Angstroms.
+///
+/// # Arguments
+///
+/// * `pdb` - A reference to a `pdbtbx::PDB` structure representing the entire protein.
+///
+/// # Returns
+///
+/// A `HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom)>>` where:
+/// - The key is a body identifier (starting from 0).
+/// - The value is a vector of tuples, each containing:
+///   - The residue serial number (`isize`)
+///   - The chain identifier (`&str`)
+///   - A reference to the CA atom (`&pdbtbx::Atom`)
+///
+/// # Algorithm
+///
+/// 1. Extracts all CA atoms from the PDB structure, along with their chain and residue information.
+/// 2. Iterates through consecutive CA atoms within each chain.
+/// 3. If the distance between consecutive CA atoms exceeds 4 Angstroms, a new body is started.
+/// 4. Groups CA atoms into bodies based on this distance criterion.
+///
+/// # Notes
+///
+/// - This function only considers CA atoms for body identification.
+/// - The 4 Angstrom cutoff is hard-coded and may not be suitable for all use cases.
+/// - Bodies are numbered sequentially starting from 0.
+/// - Gaps between chains always result in a new body, regardless of spatial proximity.
+/// - The function assumes that CA atoms within a chain are listed in sequence order.
 pub fn find_bodies(pdb: &pdbtbx::PDB) -> HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom)>> {
     // Check if the distance of a given atom to its next one is higher than 4A
 
@@ -193,6 +361,46 @@ pub fn find_bodies(pdb: &pdbtbx::PDB) -> HashMap<isize, Vec<(isize, &str, &pdbtb
     bodies
 }
 
+/// Creates a list of gaps between different bodies in a protein structure.
+///
+/// This function analyzes the spatial relationships between separate bodies of a protein
+/// structure and generates a list of `Gap` instances representing the distances between
+/// randomly selected pairs of atoms from different bodies.
+///
+/// # Arguments
+///
+/// * `bodies` - A reference to a `HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom)>>` representing
+///              the bodies of the protein structure, as returned by the `find_bodies` function.
+///
+/// # Returns
+///
+/// A `Vec<Gap>` containing `Gap` instances that represent the distances between pairs of
+/// atoms from different bodies.
+///
+/// # Algorithm
+///
+/// 1. Initializes a random number generator with a fixed seed (42) for reproducibility.
+/// 2. Iterates over all unique pairs of bodies.
+/// 3. For each pair of bodies with at least 2 atoms each:
+///    a. Randomly selects 2 atoms from each body.
+///    b. Creates 2 `Gap` instances, one for each pair of selected atoms.
+/// 4. Collects all created `Gap` instances into a vector.
+///
+/// # Notes
+///
+/// - The function uses a fixed random seed (42) for reproducibility. This means that
+///   for the same input, it will always produce the same output.
+/// - Only bodies with at least 2 atoms are considered for gap creation.
+/// - The function creates 2 gaps for each pair of bodies, using different randomly selected atoms.
+/// - The `Gap` instances contain information about the chain, atom names, residue numbers,
+///   and the distance between the selected atoms.
+/// - This function assumes that the input `bodies` HashMap is structured as expected,
+///   with each value being a vector of tuples (residue number, chain ID, atom reference).
+///
+/// # Safety
+///
+/// This function uses `unwrap()` on the results of `choose_multiple()`. It assumes that
+/// the bodies contain at least 2 atoms each, as checked earlier in the function.
 pub fn create_iter_body_gaps(
     bodies: &HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom)>>,
 ) -> Vec<Gap> {
