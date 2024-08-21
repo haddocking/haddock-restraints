@@ -53,6 +53,9 @@ pub struct Interactor {
 
     /// Optional cutoff value for buried residue filtering.
     filter_buried_cutoff: Option<f64>,
+
+    /// Optional wildcard value for the interactor.
+    wildcard: Option<String>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -304,13 +307,17 @@ impl Interactor {
         &self.passive
     }
 
-    pub fn wildcard(&self) -> &str {
-        match &self.wildcard {
-            Some(wildcard) => wildcard,
-            None => "",
-        }
-    }
-
+    /// Returns the wildcard string associated with this Interactor.
+    ///
+    /// # Returns
+    ///
+    /// - If a wildcard is set, returns a string slice (`&str`) containing the wildcard value.
+    /// - If no wildcard is set, returns an empty string slice.
+    ///
+    /// # Notes
+    ///
+    /// - This method provides read-only access to the wildcard value.
+    /// - The wildcard is typically used to represent any residue or atom in certain contexts.
     pub fn wildcard(&self) -> &str {
         match &self.wildcard {
             Some(wildcard) => wildcard,
@@ -375,10 +382,20 @@ impl Interactor {
         self.passive = passive.into_iter().collect();
     }
 
-    pub fn set_wildcard(&mut self, wildcard: &str) {
-        self.wildcard = Some(wildcard.to_string());
-    }
-
+    /// Sets the wildcard string for this Interactor.
+    ///
+    /// This method allows you to set or update the wildcard value associated with the Interactor.
+    ///
+    /// # Arguments
+    ///
+    /// * `wildcard` - A string slice (`&str`) that specifies the new wildcard value.
+    ///
+    /// # Notes
+    ///
+    /// - This method will overwrite any previously set wildcard value.
+    /// - The wildcard is stored as an owned `String`, so the input `&str` is cloned.
+    /// - An empty string is a valid wildcard value, though its interpretation may depend on the context.
+    /// - The wildcard is typically used to represent any residue or atom in certain contexts.
     pub fn set_wildcard(&mut self, wildcard: &str) {
         self.wildcard = Some(wildcard.to_string());
     }
