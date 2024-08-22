@@ -46,6 +46,7 @@ enum Commands {
         cutoff: f64,
     },
 
+    #[command(about = "Generate Z-restraints for a protein")]
     Z {
         #[arg(required = true, help = "Input file")]
         input: String,

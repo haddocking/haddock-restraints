@@ -17,6 +17,7 @@ A standalone command-line application to generate restraints to be used in HADDO
 - [`ti`: Generate true-interface restraints from a PDB file](https://www.bonvinlab.org/haddock-restraints/ti.html)
 - [`restraint`: Generate Unambiguous restraints to keep molecules together during docking](https://www.bonvinlab.org/haddock-restraints/restraint.html)
 - [`interface`: List residues in the interface](https://www.bonvinlab.org/haddock-restraints/interface.html)
+- [`z`: Generate Z-restraints for a protein](https://www.bonvinlab.org/haddock-restraints/z.html)
 
 ## Planned features
 
@@ -29,6 +30,7 @@ A standalone command-line application to generate restraints to be used in HADDO
 - [x] Create unambiguous restraints to keep molecules together during docking (restraint command)
 - [x] Filter out buried residues (tbl command)
 - [x] List residues in the interface (interface command)
+- [x] Add Z-restraints to keep molecules aligned in the Z-axis (z command)
 - [ ] Template based restraints
 - [ ] Specify atom subsets
 - [ ] ~Generate random-restraints~ done via CNS
@@ -56,6 +58,7 @@ Commands:
   ti         Generate true-interface restraints from a PDB file
   restraint  Generate Unambiguous restraints to keep molecules together during docking
   interface  List residues in the interface
+  z          Generate Z-restraints for a protein
   help       Print this message or the help of the given subcommand(s)
 
 Options:
