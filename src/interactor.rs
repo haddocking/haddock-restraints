@@ -137,17 +137,14 @@ impl Interactor {
     ///
     /// # Dependencies
     ///
-    /// This method relies on external functions from the `pdbtbx` and `structure` modules:
-    /// - `pdbtbx::open_pdb`
+    /// This method relies on external functions from the `structure` module:
     /// - `structure::get_residues`
     /// - `structure::neighbor_search`
+    /// - `structure::load_pdb`
     ///
     pub fn set_passive_from_active(&mut self) {
-        match pdbtbx::open_pdb(
-            self.structure.clone().unwrap(),
-            pdbtbx::StrictnessLevel::Loose,
-        ) {
-            Ok((pdb, _warnings)) => {
+        match structure::load_pdb(self.structure.clone().unwrap().as_str()) {
+            Ok(pdb) => {
                 let residues = structure::get_residues(
                     &pdb,
                     self.active.iter().map(|x| *x as isize).collect(),
@@ -187,20 +184,17 @@ impl Interactor {
     ///
     /// # Dependencies
     ///
-    /// This method relies on external functions from the `pdbtbx` and `sasa` modules:
-    /// - `pdbtbx::open_pdb`
+    /// This method relies on external functions from the `sasa` and `structure` modules:
     /// - `sasa::calculate_sasa`
+    /// - `structure::load_pdb`
     ///
     /// # Note
     ///
     /// The threshold for considering a residue as "surface" is set to 0.7 relative SASA.
     /// This value may need to be adjusted based on specific requirements.
     pub fn set_surface_as_passive(&mut self) {
-        match pdbtbx::open_pdb(
-            self.structure.clone().unwrap(),
-            pdbtbx::StrictnessLevel::Loose,
-        ) {
-            Ok((pdb, _warnings)) => {
+        match structure::load_pdb(self.structure.clone().unwrap().as_str()) {
+            Ok(pdb) => {
                 let sasa = sasa::calculate_sasa(pdb.clone());
 
                 // Add these neighbors to the passive set
@@ -238,20 +232,17 @@ impl Interactor {
     ///
     /// # Dependencies
     ///
-    /// This method relies on external functions from the `pdbtbx` and `sasa` modules:
-    /// - `pdbtbx::open_pdb`
+    /// This method relies on external functions from the `sasa` and `structure` module:
     /// - `sasa::calculate_sasa`
+    /// - `structure::load_pdb`
     ///
     /// # Note
     ///
     /// The default threshold for considering a residue as "buried" is set to 0.7 relative SASA.
     /// This can be customized by setting the `filter_buried_cutoff` field of the `Interactor`.
     pub fn remove_buried_residues(&mut self) {
-        match pdbtbx::open_pdb(
-            self.structure.clone().unwrap(),
-            pdbtbx::StrictnessLevel::Loose,
-        ) {
-            Ok((pdb, _warnings)) => {
+        match structure::load_pdb(self.structure.clone().unwrap().as_str()) {
+            Ok(pdb) => {
                 let sasa = sasa::calculate_sasa(pdb.clone());
 
                 let sasa_cutoff = self.filter_buried_cutoff.unwrap_or(0.7);

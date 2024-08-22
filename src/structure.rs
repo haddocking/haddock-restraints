@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use itertools::Itertools;
 use kd_tree::KdTree;
 use nalgebra::Vector3;
-use pdbtbx::Residue;
 use pdbtbx::{Atom, PDB};
+use pdbtbx::{PDBError, Residue};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
@@ -543,6 +543,42 @@ pub fn get_atoms_from_resnumbers(pdb: &PDB, selection: &[isize]) -> Vec<Atom> {
         .collect()
 }
 
+/// Loads a PDB (Protein Data Bank) file from a file path.
+///
+/// This function takes a PDB file content as a string, pads the lines,
+/// and then attempts to parse it into a PDB structure using the pdbtbx library.
+///
+/// # Arguments
+///
+/// * `input_pdb` - A string slice containing the file path of a PDB file.
+///
+/// # Returns
+///
+/// * `Result<PDB, Vec<PDBError>>` - On success, returns the parsed PDB structure.
+///   On failure, returns a vector of PDBError describing what went wrong during parsing.
+///
+/// # Notes
+///
+/// - This function uses `pdb_handler::pad_lines` to preprocess the input string.
+/// - The PDB is parsed with `pdbtbx::StrictnessLevel::Loose` to allow for some flexibility in the input format.
+/// - Any warnings generated during parsing are discarded. If you need to handle warnings,
+///   consider modifying the function to return them along with the PDB structure.
+pub fn load_pdb(input_pdb: &str) -> Result<PDB, Vec<PDBError>> {
+    // Pad lines before reading the PDB file
+    let padded_reader = pdb_handler::pad_lines(input_pdb);
+
+    let pdb = pdbtbx::open_pdb_raw(
+        padded_reader,
+        pdbtbx::Context::None,
+        pdbtbx::StrictnessLevel::Loose,
+    );
+
+    match pdb {
+        Ok((pdb, _)) => Ok(pdb),
+        Err(e) => Err(e),
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -552,11 +588,7 @@ mod tests {
 
     #[test]
     fn test_get_true_interface() {
-        let pdb_path = env::current_dir().unwrap().join("tests/data/complex.pdb");
-
-        let pdb = pdbtbx::open_pdb(pdb_path.to_str().unwrap(), pdbtbx::StrictnessLevel::Loose)
-            .unwrap()
-            .0;
+        let pdb = load_pdb("tests/data/complex.pdb").unwrap();
 
         let observed_true_interface = get_true_interface(&pdb, 5.0);
 
@@ -574,5 +606,23 @@ mod tests {
         expected_true_interface.insert(chain_b.to_string(), res_b);
 
         assert_eq!(observed_true_interface, expected_true_interface);
+    }
+
+    #[test]
+    fn test_load_pdb_short_lines() {
+        let pdb_path = env::current_dir()
+            .unwrap()
+            .join("tests/data/leu_short_lines.pdb");
+        let pdb = load_pdb(pdb_path.to_str().unwrap()).unwrap();
+        assert_eq!(pdb.atoms().count(), 8);
+    }
+
+    #[test]
+    fn test_load_pdb_normal_lines() {
+        let pdb_path = env::current_dir()
+            .unwrap()
+            .join("tests/data/leu_normal_lines.pdb");
+        let pdb = load_pdb(pdb_path.to_str().unwrap()).unwrap();
+        assert_eq!(pdb.atoms().count(), 8);
     }
 }

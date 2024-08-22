@@ -470,6 +470,7 @@ dependencies = [
  "itertools 0.13.0",
  "kd-tree",
  "nalgebra",
+ "pdb-handler",
  "pdbtbx",
  "rand",
  "serde",
@@ -863,6 +864,17 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
+name = "pdb-handler"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a755e67deaf699466eef6fbb98c938449e1ed48d7bd3c1ac7b4889bc9ca6ee20"
+dependencies = [
+ "pdbtbx",
+ "regex",
+ "serde",
+]
 
 [[package]]
 name = "pdbtbx"

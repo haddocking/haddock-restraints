@@ -564,17 +564,15 @@ pub const REL_ASA: &[(&str, AsaValues)] = &[
 #[cfg(test)]
 mod test {
 
+    use crate::structure;
+
     use super::*;
-    use std::env;
 
     // TODO: Add more tests
 
     #[test]
     fn test_calculate_sasa() {
-        let pdb_path = env::current_dir().unwrap().join("tests/data/complex.pdb");
-        let pdb = pdbtbx::open_pdb(pdb_path.to_str().unwrap(), pdbtbx::StrictnessLevel::Loose)
-            .unwrap()
-            .0;
+        let pdb = structure::load_pdb("tests/data/complex.pdb").unwrap();
         let extended_residues = calculate_sasa(pdb);
 
         assert_eq!(extended_residues.len(), 116);
