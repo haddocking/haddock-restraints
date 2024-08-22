@@ -178,7 +178,7 @@ fn gen_tbl(input_file: &str) {
 ///
 /// # Arguments
 ///
-/// * `input_pdb` - A string slice that holds the path to the input PDB file.
+/// * `input_file` - A string slice that holds the path to the input PDB file.
 /// * `cutoff` - A reference to a f64 value specifying the distance cutoff (in Angstroms) for determining interfaces.
 ///
 /// # Returns
@@ -213,9 +213,10 @@ fn gen_tbl(input_file: &str) {
 /// - `structure::get_true_interface` and `structure::get_chains_in_contact` for interface analysis.
 /// - `Interactor` struct for representing protein chains and their interactions.
 /// - `Air` struct for generating the AIR table.
-fn true_interface(input_pdb: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
-    let pdb = match pdbtbx::open_pdb(input_pdb, pdbtbx::StrictnessLevel::Loose) {
-        Ok((pdb, _warnings)) => pdb,
+fn true_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
+    // Read PDB file
+    let pdb = match structure::load_pdb(input_file) {
+        Ok(pdb) => pdb,
         Err(e) => {
             panic!("Error opening PDB file: {:?}", e);
         }
@@ -307,8 +308,8 @@ fn true_interface(input_pdb: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
 /// - `Air` struct for generating the AIR table.
 fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
     // Read PDB file
-    let pdb = match pdbtbx::open_pdb(input_file, pdbtbx::StrictnessLevel::Loose) {
-        Ok((pdb, _warnings)) => pdb,
+    let pdb = match structure::load_pdb(input_file) {
+        Ok(pdb) => pdb,
         Err(e) => {
             panic!("Error opening PDB file: {:?}", e);
         }
@@ -404,8 +405,8 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
 /// - `pdbtbx` for opening and parsing PDB files.
 /// - `structure::get_true_interface` for identifying interface residues.
 fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
-    let pdb = match pdbtbx::open_pdb(input_file, pdbtbx::StrictnessLevel::Loose) {
-        Ok((pdb, _warnings)) => pdb,
+    let pdb = match structure::load_pdb(input_file) {
+        Ok(pdb) => pdb,
         Err(e) => {
             panic!("Error opening PDB file: {:?}", e);
         }
@@ -430,8 +431,8 @@ fn generate_z_restraints(
     grid_size: &usize,
     grid_spacing: &f64,
 ) -> Result<(), Box<dyn Error>> {
-    let pdb = match pdbtbx::open_pdb(input_file, pdbtbx::StrictnessLevel::Loose) {
-        Ok((pdb, _warnings)) => pdb,
+    let pdb = match structure::load_pdb(input_file) {
+        Ok(pdb) => pdb,
         Err(e) => {
             panic!("Error opening PDB file: {:?}", e);
         }
