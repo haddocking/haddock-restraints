@@ -543,16 +543,6 @@ pub fn get_atoms_from_resnumbers(pdb: &PDB, selection: &[isize]) -> Vec<Atom> {
         .collect()
 }
 
-pub fn move_to_origin(pdb: &mut PDB) {
-    let center = calculate_geometric_center(&pdb.atoms().cloned().collect::<Vec<_>>());
-    for atom in pdb.atoms_mut() {
-        let x = atom.x() - center.x;
-        let y = atom.y() - center.y;
-        let z = atom.z() - center.z;
-        let _ = atom.set_pos((x, y, z));
-    }
-}
-
 #[cfg(test)]
 mod tests {
 

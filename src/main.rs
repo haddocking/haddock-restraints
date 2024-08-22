@@ -7,9 +7,6 @@ use air::Air;
 use core::panic;
 use interactor::Interactor;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufWriter;
-use std::path::Path;
 use std::{error::Error, vec};
 
 use clap::{Parser, Subcommand};
@@ -544,7 +541,3 @@ fn generate_z_restraints(
 
     Ok(())
 }
-
-// sele s1, resid 19+83+145+167 and input
-// sele s2, resid 98+101+126+129 and input
-// sele s3, resid 23+62+87+111+116+153+163 and input
