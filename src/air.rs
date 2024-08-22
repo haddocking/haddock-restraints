@@ -70,7 +70,7 @@ impl Air {
             // let header = append_header(i);
             // tbl.push_str(&header);
 
-            let target_res = interactor::collect_resnums(partners);
+            let target_res = interactor::collect_residues(partners);
             let block = interactor.create_block(target_res);
             tbl.push_str(&block);
         }

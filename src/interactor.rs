@@ -1,5 +1,6 @@
 use crate::sasa;
 use crate::structure;
+use core::panic;
 use serde::Deserialize;
 use std::collections::HashSet;
 
@@ -27,8 +28,6 @@ pub struct Interactor {
 
     /// Optional list of passive atom names.
     passive_atoms: Option<Vec<String>>,
-
-    /// Set of target interactor IDs.
     target: HashSet<u16>,
 
     /// Optional target distance for interactions.
@@ -54,6 +53,9 @@ pub struct Interactor {
 
     /// Optional cutoff value for buried residue filtering.
     filter_buried_cutoff: Option<f64>,
+
+    /// Optional wildcard value for the interactor.
+    wildcard: Option<String>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -86,6 +88,7 @@ impl Interactor {
             filter_buried_cutoff: None,
             active_atoms: None,
             passive_atoms: None,
+            wildcard: None,
             target_distance: None,
             lower_margin: None,
             upper_margin: None,
@@ -304,6 +307,24 @@ impl Interactor {
         &self.passive
     }
 
+    /// Returns the wildcard string associated with this Interactor.
+    ///
+    /// # Returns
+    ///
+    /// - If a wildcard is set, returns a string slice (`&str`) containing the wildcard value.
+    /// - If no wildcard is set, returns an empty string slice.
+    ///
+    /// # Notes
+    ///
+    /// - This method provides read-only access to the wildcard value.
+    /// - The wildcard is typically used to represent any residue or atom in certain contexts.
+    pub fn wildcard(&self) -> &str {
+        match &self.wildcard {
+            Some(wildcard) => wildcard,
+            None => "",
+        }
+    }
+
     /// Returns a reference to the set of target interactor IDs.
     ///
     /// # Returns
@@ -359,6 +380,24 @@ impl Interactor {
     /// * `passive` - A vector of `i16` values representing the passive residue numbers.
     pub fn set_passive(&mut self, passive: Vec<i16>) {
         self.passive = passive.into_iter().collect();
+    }
+
+    /// Sets the wildcard string for this Interactor.
+    ///
+    /// This method allows you to set or update the wildcard value associated with the Interactor.
+    ///
+    /// # Arguments
+    ///
+    /// * `wildcard` - A string slice (`&str`) that specifies the new wildcard value.
+    ///
+    /// # Notes
+    ///
+    /// - This method will overwrite any previously set wildcard value.
+    /// - The wildcard is stored as an owned `String`, so the input `&str` is cloned.
+    /// - An empty string is a valid wildcard value, though its interpretation may depend on the context.
+    /// - The wildcard is typically used to represent any residue or atom in certain contexts.
+    pub fn set_wildcard(&mut self, wildcard: &str) {
+        self.wildcard = Some(wildcard.to_string());
     }
 
     /// Sets the target distance for the Interactor.
@@ -468,25 +507,27 @@ impl Interactor {
     ///
     /// The resulting block includes all necessary restraints formatted according
     /// to the Interactor's properties and the provided target residues.
-    pub fn create_block(&self, target_res: Vec<(&str, &i16)>) -> String {
+    pub fn create_block(&self, passive_res: Vec<PassiveResidues>) -> String {
         let mut block = String::new();
         let mut _active: Vec<i16> = self.active().iter().cloned().collect();
         _active.sort();
 
         // Sort the target residues by residue number
-        let mut target_res: Vec<(&str, &i16)> = target_res.clone();
-        target_res.sort_by(|a, b| a.1.cmp(b.1));
+        let mut passive_res: Vec<PassiveResidues> = passive_res.clone();
+        passive_res.sort_by(|a, b| a.res_number.cmp(&b.res_number));
 
         // Check if need to use multiline separation
-        let multiline = target_res.len() > 1;
+        let multiline = passive_res.len() > 1;
 
         for resnum in _active {
             let atom_str = format_atom_string(&self.active_atoms);
+
             let mut assign_str = format!(
-                "assign ( resid {} and segid {}{} )",
+                "assign ( resid {} and segid {}{} {})",
                 resnum,
                 self.chain(),
-                atom_str
+                atom_str,
+                &self.wildcard()
             );
 
             if multiline {
@@ -495,7 +536,9 @@ impl Interactor {
 
             block.push_str(assign_str.as_str());
 
-            let res_lines: Vec<String> = target_res
+            // panic!("Target res: {:?}", target_res);
+
+            let res_lines: Vec<String> = passive_res
                 .iter()
                 .enumerate()
                 .map(|(index, res)| {
@@ -505,22 +548,30 @@ impl Interactor {
                     if multiline {
                         res_line.push_str(
                             format!(
-                                "        ( resid {} and segid {}{} )\n",
-                                res.1, res.0, passive_atom_str
+                                "        ( {} segid {}{} {})\n",
+                                res.res_number
+                                    .map_or(String::new(), |num| format!("resid {} and", num)),
+                                res.chain_id,
+                                passive_atom_str,
+                                res.wildcard
                             )
                             .as_str(),
                         );
                     } else {
                         res_line.push_str(
                             format!(
-                                " ( resid {} and segid {}{} )",
-                                res.1, res.0, passive_atom_str
+                                " ( {} segid {}{} {})",
+                                res.res_number
+                                    .map_or(String::new(), |num| format!("resid {} and", num)),
+                                res.chain_id,
+                                passive_atom_str,
+                                res.wildcard
                             )
                             .as_str(),
                         );
                     }
 
-                    if index != target_res.len() - 1 {
+                    if index != passive_res.len() - 1 {
                         res_line.push_str("     or\n");
                     }
                     res_line
@@ -544,6 +595,13 @@ impl Interactor {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct PassiveResidues<'a> {
+    chain_id: &'a str,
+    res_number: Option<i16>,
+    wildcard: &'a str,
+}
+
 /// Collects residue numbers from a vector of Interactors.
 ///
 /// This function gathers both active and passive residue numbers from each Interactor,
@@ -559,11 +617,32 @@ impl Interactor {
 /// - A string slice representing the chain identifier
 /// - A reference to an i16 representing the residue number
 ///
-pub fn collect_resnums(interactors: Vec<&Interactor>) -> Vec<(&str, &i16)> {
-    let mut resnums = Vec::<(&str, &i16)>::new();
+pub fn collect_residues(interactors: Vec<&Interactor>) -> Vec<PassiveResidues> {
+    let mut resnums = Vec::new();
     for interactor in interactors {
-        resnums.extend(interactor.active().iter().map(|x| (interactor.chain(), x)));
-        resnums.extend(interactor.passive().iter().map(|x| (interactor.chain(), x)));
+        let active = interactor.active().iter().map(|&x| PassiveResidues {
+            chain_id: interactor.chain(),
+            res_number: Some(x),
+            wildcard: interactor.wildcard(),
+        });
+
+        let passive = interactor.passive().iter().map(|&x| PassiveResidues {
+            chain_id: interactor.chain(),
+            res_number: Some(x),
+            wildcard: interactor.wildcard(),
+        });
+
+        resnums.extend(active);
+        resnums.extend(passive);
+
+        // If both active and passive are empty, add a single ResidueIdentifier with None as res_number
+        if interactor.active().is_empty() && interactor.passive().is_empty() {
+            resnums.push(PassiveResidues {
+                chain_id: interactor.chain(),
+                res_number: None,
+                wildcard: interactor.wildcard(),
+            });
+        }
     }
     resnums
 }
@@ -629,12 +708,93 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
     }
 }
 
-// pub fn format_oneline_assign_string()
-
 #[cfg(test)]
 mod tests {
 
-    use crate::interactor::Interactor;
+    use crate::interactor::{Interactor, PassiveResidues};
+
+    #[test]
+    fn test_valid_interactor() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_passive(vec![2]);
+        interactor.add_target(2);
+
+        assert_eq!(interactor.is_valid(), Ok(true));
+    }
+
+    #[test]
+    fn test_invalid_interactor_empty() {
+        let interactor = Interactor::new(1);
+
+        assert_eq!(interactor.is_valid(), Err("Target residues are empty"));
+    }
+
+    #[test]
+    fn test_invalid_interactor_overlap() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_passive(vec![1]);
+        interactor.add_target(2);
+
+        assert_eq!(
+            interactor.is_valid(),
+            Err("Active/Passive selections overlap")
+        );
+    }
+
+    #[test]
+    fn test_set_passive_from_active() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_structure("tests/data/complex.pdb");
+        interactor.set_active(vec![1]);
+        interactor.set_passive_from_active();
+
+        let expected_passive = [16, 15, 18, 3, 19, 61, 56, 17, 2, 62, 63];
+
+        assert_eq!(
+            interactor.passive(),
+            &expected_passive.iter().cloned().collect()
+        );
+    }
+
+    #[test]
+    fn test_set_surface_as_passive() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_structure("tests/data/complex.pdb");
+        interactor.set_chain("A");
+        interactor.set_surface_as_passive();
+
+        let expected_passive = [
+            938, 965, 953, 944, 933, 958, 966, 972, 931, 936, 961, 929, 943, 954, 932, 945, 942,
+            957, 955, 947, 940, 941, 937, 964, 970, 930, 969, 968, 950, 952, 959, 971, 967, 956,
+            946, 960, 962, 935, 948, 951, 934,
+        ];
+
+        assert_eq!(
+            interactor.passive(),
+            &expected_passive.iter().cloned().collect()
+        );
+    }
+
+    #[test]
+    fn test_remove_buried_active_residues() {
+        let mut interactor = Interactor::new(1);
+
+        interactor.set_structure("tests/data/complex.pdb");
+        interactor.set_chain("A");
+        interactor.filter_buried = Some(true);
+        interactor.filter_buried_cutoff = Some(0.7);
+        interactor.set_active(vec![949, 931]);
+        interactor.remove_buried_residues();
+
+        let expected_active = [931];
+
+        assert_eq!(
+            interactor.active(),
+            &expected_active.iter().cloned().collect()
+        );
+    }
 
     #[test]
     fn test_create_block_multiline() {
@@ -642,7 +802,18 @@ mod tests {
         interactor.set_active(vec![1]);
         interactor.set_chain("A");
 
-        let observed = interactor.create_block(vec![("B", &2), ("B", &3)]);
+        let observed = interactor.create_block(vec![
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(2),
+                wildcard: "",
+            },
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(3),
+                wildcard: "",
+            },
+        ]);
 
         let block = "assign ( resid 1 and segid A )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 
@@ -655,7 +826,11 @@ mod tests {
         interactor.set_active(vec![1]);
         interactor.set_chain("A");
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
@@ -669,7 +844,11 @@ mod tests {
         interactor.set_chain("A");
         interactor.set_active_atoms(vec!["CA".to_string()]);
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block =
             "assign ( resid 1 and segid A and name CA ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
@@ -684,7 +863,11 @@ mod tests {
         interactor.set_chain("A");
         interactor.set_passive_atoms(vec!["CA".to_string()]);
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block =
             "assign ( resid 1 and segid A ) ( resid 2 and segid B and name CA ) 2.0 2.0 0.0\n\n";
@@ -700,7 +883,11 @@ mod tests {
         interactor.set_active_atoms(vec!["CA".to_string()]);
         interactor.set_passive_atoms(vec!["CB".to_string()]);
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block =
             "assign ( resid 1 and segid A and name CA ) ( resid 2 and segid B and name CB ) 2.0 2.0 0.0\n\n";
@@ -716,7 +903,18 @@ mod tests {
         interactor.set_active_atoms(vec!["CA".to_string()]);
         interactor.set_passive_atoms(vec!["CB".to_string()]);
 
-        let observed = interactor.create_block(vec![("B", &2), ("B", &3)]);
+        let observed = interactor.create_block(vec![
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(2),
+                wildcard: "",
+            },
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(3),
+                wildcard: "",
+            },
+        ]);
 
         let block = "assign ( resid 1 and segid A and name CA )\n       (\n        ( resid 2 and segid B and name CB )\n     or\n        ( resid 3 and segid B and name CB )\n       ) 2.0 2.0 0.0\n\n";
 
@@ -731,9 +929,32 @@ mod tests {
         interactor.set_target_distance(5.0);
         interactor.set_lower_margin(0.0);
 
-        let observed = interactor.create_block(vec![("B", &2)]);
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
 
         let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 5.0 0.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_with_wildcard() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_wildcard("and attr z gt 42.00 ");
+
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
+
+        let block =
+            "assign ( resid 1 and segid A and attr z gt 42.00 ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }

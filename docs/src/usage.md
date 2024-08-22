@@ -9,3 +9,5 @@
 - [`restraint`: Generate _unambiguous restraints_ to keep molecules together during docking](./restraint.md)
 
 - [`interface`: List residues in the interface](./interface.md)
+
+- [`z`: Generate restraints to keep the molecule aligned to the Z-axis](./z.md)
