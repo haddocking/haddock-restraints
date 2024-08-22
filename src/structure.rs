@@ -9,7 +9,9 @@ use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use std::fs::File;
-use std::io::Write;
+use std::io::BufReader;
+use std::io::Cursor;
+use std::io::{Read, Write};
 
 #[derive(Clone)]
 pub struct Bead {
@@ -564,11 +566,10 @@ pub fn get_atoms_from_resnumbers(pdb: &PDB, selection: &[isize]) -> Vec<Atom> {
 /// - Any warnings generated during parsing are discarded. If you need to handle warnings,
 ///   consider modifying the function to return them along with the PDB structure.
 pub fn load_pdb(input_pdb: &str) -> Result<PDB, Vec<PDBError>> {
-    // Pad lines before reading the PDB file
-    let padded_reader = pdb_handler::pad_lines(input_pdb);
+    let processed_buf = process_pdb(input_pdb);
 
     let pdb = pdbtbx::open_pdb_raw(
-        padded_reader,
+        processed_buf,
         pdbtbx::Context::None,
         pdbtbx::StrictnessLevel::Loose,
     );
@@ -579,10 +580,53 @@ pub fn load_pdb(input_pdb: &str) -> Result<PDB, Vec<PDBError>> {
     }
 }
 
+/// Processes a PDB file by removing remarks and padding specific lines.
+///
+/// This function performs two operations on the input PDB file:
+/// 1. Removes all lines that start with "REMARK".
+/// 2. Pads lines starting with "ATOM" to a length of 80 characters.
+///
+/// # Arguments
+///
+/// * `input_pdb` - A string slice that holds the path to the input PDB file.
+///
+/// # Returns
+///
+/// A `BufReader<Cursor<Vec<u8>>>` containing the processed PDB content.
+///
+/// # Errors
+///
+/// This function will panic if:
+/// - The input file cannot be read.
+/// - A temporary file cannot be created or written to.
+/// - The `remove_remark` or `pad_lines` functions fail.
+///
+pub fn process_pdb(input_pdb: &str) -> BufReader<Cursor<Vec<u8>>> {
+    // Remove remarks from the PDB file
+    let no_remarks = pdb_handler::remove_remark(input_pdb);
+
+    // Convert the bufreader to a string
+    let mut content = String::new();
+    no_remarks
+        .into_inner()
+        .read_to_string(&mut content)
+        .unwrap();
+
+    let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+
+    // Write the content to the temporary file
+    temp_file.write_all(content.as_bytes()).unwrap();
+    let temp_path = temp_file.path().to_str().unwrap();
+
+    // Pad lines before reading the PDB file
+    pdb_handler::pad_lines(temp_path)
+}
+
 #[cfg(test)]
 mod tests {
 
     use std::env;
+    use std::io::BufRead;
 
     use super::*;
 
@@ -624,5 +668,21 @@ mod tests {
             .join("tests/data/leu_normal_lines.pdb");
         let pdb = load_pdb(pdb_path.to_str().unwrap()).unwrap();
         assert_eq!(pdb.atoms().count(), 8);
+    }
+
+    #[test]
+    fn test_process_pdb() {
+        let processed_buf = process_pdb("tests/data/remark_short_lines.pdb");
+
+        let lines: Vec<String> = processed_buf.lines().map(|l| l.unwrap()).collect();
+
+        // Check that there are no REMARK lines
+        assert!(lines.iter().all(|line| !line.starts_with("REMARK")));
+
+        // Check that all ATOM lines are 80 characters long
+        assert!(lines
+            .iter()
+            .filter(|line| line.starts_with("ATOM"))
+            .all(|line| line.len() == 80));
     }
 }
