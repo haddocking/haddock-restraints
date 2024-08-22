@@ -714,6 +714,89 @@ mod tests {
     use crate::interactor::{Interactor, PassiveResidues};
 
     #[test]
+    fn test_valid_interactor() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_passive(vec![2]);
+        interactor.add_target(2);
+
+        assert_eq!(interactor.is_valid(), Ok(true));
+    }
+
+    #[test]
+    fn test_invalid_interactor_empty() {
+        let interactor = Interactor::new(1);
+
+        assert_eq!(interactor.is_valid(), Err("Target residues are empty"));
+    }
+
+    #[test]
+    fn test_invalid_interactor_overlap() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_passive(vec![1]);
+        interactor.add_target(2);
+
+        assert_eq!(
+            interactor.is_valid(),
+            Err("Active/Passive selections overlap")
+        );
+    }
+
+    #[test]
+    fn test_set_passive_from_active() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_structure("tests/data/complex.pdb");
+        interactor.set_active(vec![1]);
+        interactor.set_passive_from_active();
+
+        let expected_passive = [16, 15, 18, 3, 19, 61, 56, 17, 2, 62, 63];
+
+        assert_eq!(
+            interactor.passive(),
+            &expected_passive.iter().cloned().collect()
+        );
+    }
+
+    #[test]
+    fn test_set_surface_as_passive() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_structure("tests/data/complex.pdb");
+        interactor.set_chain("A");
+        interactor.set_surface_as_passive();
+
+        let expected_passive = [
+            938, 965, 953, 944, 933, 958, 966, 972, 931, 936, 961, 929, 943, 954, 932, 945, 942,
+            957, 955, 947, 940, 941, 937, 964, 970, 930, 969, 968, 950, 952, 959, 971, 967, 956,
+            946, 960, 962, 935, 948, 951, 934,
+        ];
+
+        assert_eq!(
+            interactor.passive(),
+            &expected_passive.iter().cloned().collect()
+        );
+    }
+
+    #[test]
+    fn test_remove_buried_active_residues() {
+        let mut interactor = Interactor::new(1);
+
+        interactor.set_structure("tests/data/complex.pdb");
+        interactor.set_chain("A");
+        interactor.filter_buried = Some(true);
+        interactor.filter_buried_cutoff = Some(0.7);
+        interactor.set_active(vec![949, 931]);
+        interactor.remove_buried_residues();
+
+        let expected_active = [931];
+
+        assert_eq!(
+            interactor.active(),
+            &expected_active.iter().cloned().collect()
+        );
+    }
+
+    #[test]
     fn test_create_block_multiline() {
         let mut interactor = Interactor::new(1);
         interactor.set_active(vec![1]);
@@ -853,6 +936,25 @@ mod tests {
         }]);
 
         let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 5.0 0.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_with_wildcard() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_wildcard("and attr z gt 42.00 ");
+
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
+
+        let block =
+            "assign ( resid 1 and segid A and attr z gt 42.00 ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
