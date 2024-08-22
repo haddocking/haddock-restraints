@@ -1,0 +1,53 @@
+REMARK FILENAME="emscoring_1.pdb"
+REMARK ===============================================================
+REMARK HADDOCK stats for emscoring_1.pdb
+REMARK ===============================================================
+REMARK HADDOCK score: -54.1511
+REMARK ===============================================================
+REMARK initial structure 1 - ../0_topoaa/complexyrrk72_y_haddock.pdb
+REMARK ===============================================================
+REMARK            total,bonds,angles,improper,dihe,vdw,elec,air,cdih,coup,rdcs,vean,dani,xpcs,rg
+REMARK energies: -106.18, 0, 0, 0, 0, -30.4344, -75.7457, 0, 0, 0, 0, 0, 0, 0, 0
+REMARK ===============================================================
+REMARK            bonds,angles,impropers,dihe,air,cdih,coup,rdcs,vean,dani,xpcs
+REMARK rms-dev.: 0,0,0,0,0,0,0, 0, 0, 0, 0
+REMARK ===============================================================
+REMARK               air,cdih,coup,rdcs,vean,dani,xpcs
+REMARK               >0.3,>5,>1,>0,>5,>0.2,>0.2
+REMARK violations.: 0, 0, 0, 0, 0, 0, 0
+REMARK ===============================================================
+REMARK                        CVpartition#,violations,rms
+REMARK AIRs cross-validation: 0, 0, 0
+REMARK ===============================================================
+REMARK NCS energy: 0
+REMARK ===============================================================
+REMARK Symmetry energy: 0
+REMARK ===============================================================
+REMARK Membrane restraining energy: 0
+REMARK ===============================================================
+REMARK Local cross-correlation:  0.0000
+REMARK ===============================================================
+REMARK Desolvation energy: -8.56748
+REMARK Internal energy free molecules: -4515.85
+REMARK Internal energy complex: -4364.86
+REMARK Binding energy: 36.2429
+REMARK ===============================================================
+REMARK buried surface area: 802.679
+REMARK ===============================================================
+REMARK Total HADDOCK score without restraints: -54.1511
+REMARK ===============================================================
+REMARK water - chain-A: 0 0 0
+REMARK water - chain-B: 0 0 0
+REMARK ===============================================================
+REMARK water - water: 0 0 0
+REMARK ===============================================================
+REMARK DATE:22-Aug-2024  15:23:46       created by user: unknown
+REMARK VERSION:1.3U
+ATOM      1  N   LEU A 929      26.117  -5.693  15.769  1.00 29.81      A
+ATOM      2  CA  LEU A 929      27.153  -4.857  15.061  1.00 29.93      A
+ATOM      3  C   LEU A 929      26.486  -3.835  14.143  1.00 29.74      A
+ATOM      4  O   LEU A 929      26.790  -2.625  14.181  1.00 29.50      A
+ATOM      5  CB  LEU A 929      28.096  -5.742  14.248  1.00 30.37      A
+ATOM      6  CG  LEU A 929      29.617  -5.471  14.154  1.00 28.52      A
+ATOM      7  CD1 LEU A 929      30.109  -5.719  12.711  1.00 27.72      A
+ATOM      8  CD2 LEU A 929      30.111  -4.134  14.702  1.00 25.22      A
