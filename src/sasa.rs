@@ -1,5 +1,6 @@
-use freesasa_rs::{set_verbosity, structure::Structure, FreesasaVerbosity};
 use pdbtbx::{Atom, Residue};
+use rust_sasa::calculate_sasa as calculate_rust_sasa;
+use rust_sasa::{SASALevel, SASAResult};
 use std::process;
 
 /// Represents an atom with additional solvent accessible surface area (SASA) information.
@@ -118,19 +119,15 @@ impl ExtendedRes {
 pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
     // ================================================================================
     // Calculate the SASA of each atom
-    set_verbosity(FreesasaVerbosity::Error);
-    let structure = Structure::from_pdbtbx(&pdbtbx_struct).unwrap();
 
-    let result = structure.calculate_sasa().unwrap();
-    let atom_sasa = result.atom_sasa();
+    let result = calculate_rust_sasa(&pdbtbx_struct, None, None, SASALevel::Atom).unwrap();
 
-    let pdbtbx_atom_count = pdbtbx_struct.atoms().count();
-    let structure_atom_count = atom_sasa.len();
-
-    if pdbtbx_atom_count != structure_atom_count {
-        println!("Warning: The number of atoms in the pdbtbx structure ({}) does not match the number of atoms in the structure ({})", pdbtbx_atom_count, structure_atom_count);
-        panic!("Aborting");
-    }
+    let atom_sasa: Vec<f64> = if let SASAResult::Atom(sasa_vec) = result {
+        // Convert Vec<f32> to Vec<f64>
+        sasa_vec.into_iter().map(|x| x as f64).collect()
+    } else {
+        panic!("Unexpected result type: expected Atom variant");
+    };
 
     // Create a vector of ExtendedAtoms containing the SASA of each atom
     let mut extended_atoms: Vec<ExtendedAtom> = Vec::new();
