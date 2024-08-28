@@ -48,6 +48,11 @@ A minimal configuration file would look like this:
 - `surface_as_passive`: if true, the passive residues are defined based on the surface accessibility of the residues (_requires structure_)
 - `filter_buried`: if true, the buried residues are filtered out (_requires structure_)
 - `filter_buried_cutoff`: the cutoff to consider a residue as buried, default = 0.7 (_requires structure_)
+- `target_distance`: the distance to consider two residues as interacting, default = 2.0
+- `lower_margin`: the lower margin to consider two residues as interacting, default = 2.0
+- `upper_margin`: the upper margin to consider two residues as interacting, default = 0.0
+
+Note: Check [this paper](https://doi.org/10.1038/s41596-018-0018-5) for a deeper explanation about the target distance and the margins
 
 A configuration file with optional fields would look like this:
 
