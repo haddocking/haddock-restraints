@@ -594,6 +594,7 @@ pub struct PassiveResidues<'a> {
     chain_id: &'a str,
     res_number: Option<i16>,
     wildcard: &'a str,
+    // TODO: ADD THE ATOM ATOM NAMES HERE, THEY SHOULD BE USED WHEN GENERATING THE BLOCK
 }
 
 /// Collects residue numbers from a vector of Interactors.
