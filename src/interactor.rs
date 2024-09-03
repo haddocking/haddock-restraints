@@ -28,6 +28,8 @@ pub struct Interactor {
 
     /// Optional list of passive atom names.
     passive_atoms: Option<Vec<String>>,
+
+    /// Set of target interactor IDs.
     target: HashSet<u16>,
 
     /// Optional target distance for interactions.
@@ -512,7 +514,7 @@ impl Interactor {
 
         for resnum in _active {
             let atom_str = format_atom_string(&self.active_atoms);
-
+            // (name H3 or name O4 or name C4 or name C5 or name C6 or name C7)
             let mut assign_str = format!(
                 "assign ( resid {} and segid {}{} {})",
                 resnum,
@@ -528,6 +530,7 @@ impl Interactor {
             block.push_str(assign_str.as_str());
 
             // panic!("Target res: {:?}", target_res);
+            // println!("{:?}", self.passive_atoms);
 
             let res_lines: Vec<String> = passive_res
                 .iter()
@@ -691,11 +694,17 @@ pub fn format_distance_string(
 ///
 pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
     match atoms {
-        Some(atoms) => {
-            let atoms: Vec<String> = atoms.iter().map(|x| format!(" and name {}", x)).collect();
-            atoms.join("")
+        Some(atoms) if atoms.len() > 1 => {
+            let atoms: String = atoms
+                .iter()
+                .map(|x| format!("name {}", x))
+                .collect::<Vec<String>>()
+                .join(" or ");
+
+            format!(" and ({})", atoms)
         }
-        None => "".to_string(),
+        Some(atoms) if atoms.len() == 1 => format!(" and name {}", atoms[0]),
+        _ => "".to_string(),
     }
 }
 
@@ -824,6 +833,50 @@ mod tests {
         }]);
 
         let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_oneline_atom_subset() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_active_atoms(vec!["CA".to_string(), "CB".to_string()]);
+
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+        }]);
+
+        let block =
+            "assign ( resid 1 and segid A and (name CA or name CB) ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_multiline_atom_subset() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_active_atoms(vec!["CA".to_string(), "CB".to_string()]);
+        interactor.set_passive_atoms(vec!["CA".to_string(), "CB".to_string()]);
+        let observed = interactor.create_block(vec![
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(2),
+                wildcard: "",
+            },
+            PassiveResidues {
+                chain_id: "B",
+                res_number: Some(3),
+                wildcard: "",
+            },
+        ]);
+
+        let block = "assign ( resid 1 and segid A and (name CA or name CB) )\n       (\n        ( resid 2 and segid B and (name CA or name CB) )\n     or\n        ( resid 3 and segid B and (name CA or name CB) )\n       ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }

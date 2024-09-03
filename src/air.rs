@@ -69,6 +69,8 @@ impl Air {
 
             // let header = append_header(i);
             // tbl.push_str(&header);
+            //
+            println!("{:?}", interactor);
 
             let target_res = interactor::collect_residues(partners);
             let block = interactor.create_block(target_res);

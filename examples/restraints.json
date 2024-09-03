@@ -9,31 +9,22 @@
     "passive": [],
     "structure": "2oob.pdb",
     "target": [
-      2
+      3
     ],
-    "passive_from_active": true,
+    "passive_from_active": false,
     "filter_buried": true
-  },
-  {
-    "id": 2,
-    "chain": "B",
-    "active": [
-      68
-    ],
-    "passive": [],
-    "target": [
-      1
-    ]
   },
   {
     "id": 3,
     "chain": "B",
     "active": [],
     "passive": [],
+    "passive_atoms": ["CA"],
     "target": [
       1
     ],
     "structure": "2oob.pdb",
-    "surface_as_passive": true
+    "surface_as_passive": true,
+    "filter_buried": true
   }
 ]
