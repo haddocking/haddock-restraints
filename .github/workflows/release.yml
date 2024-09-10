@@ -1,10 +1,9 @@
-name: Upload Binaries
+name: upload binaries
 permissions:
   contents: write
-on: push
-# release:
-#   types: [published]
-
+on:
+  release:
+    types: [published]
 env:
   CARGO_TERM_COLOR: always
 jobs:
@@ -32,11 +31,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
-          # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
-          # Note that glob pattern is not supported yet.
           bin: haddock-restraints
-          # (optional) Target triple, default is host triple.
           archive: $bin-$tag-$target
           target: ${{ matrix.target }}
-          # (required) GitHub token for uploading assets to GitHub Releases.
           token: ${{ secrets.GITHUB_TOKEN }}
