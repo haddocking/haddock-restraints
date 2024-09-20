@@ -2,29 +2,28 @@
   {
     "id": 1,
     "chain": "A",
-    "active": [
-      934,
-      939
-    ],
+    "active": [934, 939],
     "passive": [],
     "structure": "2oob.pdb",
-    "target": [
-      3
-    ],
-    "passive_from_active": false,
+    "target": [2],
+    "passive_from_active": true,
     "filter_buried": true
+  },
+  {
+    "id": 2,
+    "chain": "B",
+    "active": [68],
+    "active_atoms": ["N"],
+    "passive": [],
+    "target": [1]
   },
   {
     "id": 3,
     "chain": "B",
     "active": [],
     "passive": [],
-    "passive_atoms": ["CA"],
-    "target": [
-      1
-    ],
+    "target": [1],
     "structure": "2oob.pdb",
-    "surface_as_passive": true,
-    "filter_buried": true
+    "surface_as_passive": true
   }
 ]
