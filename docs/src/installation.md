@@ -8,7 +8,7 @@ Get a pre-compiled binary for your system at the link below:
 
 <div style="">
   <style>
-    .feedback-button {
+    .button {
       display: inline-block;
       padding: 10px 20px;
       background-color: #337ab7;
@@ -18,12 +18,12 @@ Get a pre-compiled binary for your system at the link below:
       font-weight: bold;
       transition: background-color 0.3s ease;
     }
-    .feedback-button:hover {
+    .button:hover {
       background-color: #23527c;
     }
   </style>
 
-<a href="https://github.com/haddocking/haddock-restraints/releases/tag/v0.5.0" class="feedback-button" target="_blank">Download</a>
+<a href="https://github.com/haddocking/haddock-restraints/releases/latest" class="button" target="_blank">Download</a>
 
 </div>
 
