@@ -11,8 +11,6 @@
 
 A standalone command-line application to generate restraints to be used in HADDOCK.
 
-> Check [bonvinlab.org/haddock-restraints](https://bonvinlab.org/haddock-restraints) for a user guide.
-
 ## Commands
 
 - [`tbl`: Generates a TBL file](https://www.bonvinlab.org/haddock-restraints/tbl.html)
@@ -21,33 +19,23 @@ A standalone command-line application to generate restraints to be used in HADDO
 - [`interface`: List residues in the interface](https://www.bonvinlab.org/haddock-restraints/interface.html)
 - [`z`: Generate Z-restraints for a protein](https://www.bonvinlab.org/haddock-restraints/z.html)
 
-## Planned features
-
-- [x] Generate `.tbl` files from an input file (tbl command)
-- [x] Define passive residues based on surface accessibility (tbl command - `surface_as_passive`)
-- [x] Define passive residues around active ones (tbl command - `passive_from_active`)
-- [x] Support for N interactors; 2-body, 3-body, 4-body, etc (tbl command)
-- [x] Support for multiple interaction sites in the same interactor (tbl command)
-- [x] Generate _true-interface_ restraints for benchmarking (ti command)
-- [x] Create unambiguous restraints to keep molecules together during docking (restraint command)
-- [x] Filter out buried residues (tbl command)
-- [x] List residues in the interface (interface command)
-- [x] Add Z-restraints to keep molecules aligned in the Z-axis (z command)
-- [ ] Template based restraints
-- [ ] Specify atom subsets
-- [ ] ~Generate random-restraints~ done via CNS
-
 ## Usage
 
-### Install
+Check [bonvinlab.org/haddock-restraints](https://bonvinlab.org/haddock-restraints) for a user guide.
 
-> [Install Rust](https://www.rust-lang.org/tools/install) if you don't have it yet - later we will provide the execution binaries 🤓
+## Install
 
-```bash
-cargo install haddock-restraints
-```
+- Download the [latest binary in the release page](https://github.com/haddocking/haddock-restraints/releases/latest)
 
-### Execute
+OR
+
+- Install it with [`cargo`](https://www.rust-lang.org/tools/install)
+
+    ```bash
+    cargo install haddock-restraints
+    ```
+
+## Execute
 
 ```bash
 $ haddock-restraints -h
@@ -68,13 +56,23 @@ Options:
   -V, --version  Print version
 ```
 
+## Planned features
+
+- [x] Generate `.tbl` files from an input file (tbl command)
+- [x] Define passive residues based on surface accessibility (tbl command - `surface_as_passive`)
+- [x] Define passive residues around active ones (tbl command - `passive_from_active`)
+- [x] Support for N interactors; 2-body, 3-body, 4-body, etc (tbl command)
+- [x] Support for multiple interaction sites in the same interactor (tbl command)
+- [x] Generate _true-interface_ restraints for benchmarking (ti command)
+- [x] Create unambiguous restraints to keep molecules together during docking (restraint command)
+- [x] Filter out buried residues (tbl command)
+- [x] List residues in the interface (interface command)
+- [x] Add Z-restraints to keep molecules aligned in the Z-axis (z command)
+- [x] Specify atom subsets
+- [ ] Template based restraints
+- [ ] ~Generate random-restraints~ done via CNS
+
 ## Troubleshooting
-
-### `/usr/bin/ld: cannot find -lc++: No such file or directory`
-
-```bash
-sudo apt-get install libc++-dev libc++abi-dev
-```
 
 ### `Unable to find libclang`
 
