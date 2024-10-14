@@ -184,7 +184,7 @@ fn gen_tbl(input_file: &str) {
 ///
 /// # Returns
 ///
-/// A `Result<(), Box<dyn Error>>` which is Ok(()) if the function completes successfully, or an Error if something goes wrong.
+/// A `Result<String, Box<dyn Error>>` which is Ok(String) if the function completes successfully, or an Error if something goes wrong.
 ///
 /// # Functionality
 ///
@@ -214,7 +214,7 @@ fn gen_tbl(input_file: &str) {
 /// - `structure::get_true_interface` and `structure::get_chains_in_contact` for interface analysis.
 /// - `Interactor` struct for representing protein chains and their interactions.
 /// - `Air` struct for generating the AIR table.
-fn true_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
+fn true_interface(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Error>> {
     // Read PDB file
     let pdb = match structure::load_pdb(input_file) {
         Ok(pdb) => pdb,
@@ -230,9 +230,17 @@ fn true_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> 
     let mut true_interface: Vec<_> = true_interface.iter().collect();
     true_interface.sort_by(|a, b| a.0.cmp(b.0));
 
+    // NOTE: Here the IDs of the interactors are their position in the PDB file; this is so that
+    // we can handle any order of chains.
     let mut interactors: Vec<Interactor> = Vec::new();
-    for (index, (chain_id, residues)) in true_interface.iter().enumerate() {
-        let mut interactor = Interactor::new(index as u16);
+    for (chain_id, residues) in true_interface.iter() {
+        // Get what is the position of this chain in the PDB, this will be its ID
+        let target_id = pdb
+            .chains()
+            .position(|chain| chain.id() == *chain_id)
+            .unwrap();
+
+        let mut interactor = Interactor::new(target_id as u16);
         interactor.set_chain(chain_id);
         interactor.set_active(residues.iter().map(|&residue| residue as i16).collect());
 
@@ -257,7 +265,7 @@ fn true_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> 
 
     println!("{}", tbl);
 
-    Ok(())
+    Ok(tbl)
 }
 
 /// Generates distance restraints between non-contiguous bodies in a protein structure.
@@ -542,4 +550,85 @@ fn generate_z_restraints(
     println!("{}", tbl);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_true_interface() {
+        let expected_tbl = r#"assign ( resid 933 and segid A )
+       (
+        ( resid 46 and segid B )
+     or
+        ( resid 47 and segid B )
+       ) 2.0 2.0 0.0
+
+assign ( resid 950 and segid A )
+       (
+        ( resid 46 and segid B )
+     or
+        ( resid 47 and segid B )
+       ) 2.0 2.0 0.0
+
+assign ( resid 46 and segid B )
+       (
+        ( resid 933 and segid A )
+     or
+        ( resid 950 and segid A )
+       ) 2.0 2.0 0.0
+
+assign ( resid 47 and segid B )
+       (
+        ( resid 933 and segid A )
+     or
+        ( resid 950 and segid A )
+       ) 2.0 2.0 0.0
+
+"#;
+
+        match true_interface("tests/data/complex.pdb", &3.0) {
+            Ok(tbl) => assert_eq!(tbl, expected_tbl),
+            Err(_e) => (),
+        };
+    }
+    #[test]
+    fn test_true_interface_ba() {
+        let expected_tbl = r#"assign ( resid 933 and segid A )
+       (
+        ( resid 46 and segid B )
+     or
+        ( resid 47 and segid B )
+       ) 2.0 2.0 0.0
+
+assign ( resid 950 and segid A )
+       (
+        ( resid 46 and segid B )
+     or
+        ( resid 47 and segid B )
+       ) 2.0 2.0 0.0
+
+assign ( resid 46 and segid B )
+       (
+        ( resid 933 and segid A )
+     or
+        ( resid 950 and segid A )
+       ) 2.0 2.0 0.0
+
+assign ( resid 47 and segid B )
+       (
+        ( resid 933 and segid A )
+     or
+        ( resid 950 and segid A )
+       ) 2.0 2.0 0.0
+
+"#;
+
+        match true_interface("tests/data/complex_BA.pdb", &3.0) {
+            Ok(tbl) => assert_eq!(tbl, expected_tbl),
+            Err(_e) => (),
+        };
+    }
 }
