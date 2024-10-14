@@ -261,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "haddock-restraints"
-version = "0.5.0"
+version = "0.6.1"
 dependencies = [
  "clap",
  "itertools",
@@ -546,9 +546,9 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pdb-handler"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "756dfde2fca9ce56905ef35256335cc962a312d5b41f28db46b4adb60f41f058"
+checksum = "95ec009e78d186ba6209232b7b34b2ae24db0454346b94e743e1aaede1c340bf"
 dependencies = [
  "pdbtbx",
  "regex",
