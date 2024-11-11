@@ -315,7 +315,7 @@ fn true_interface(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Erro
 /// - `structure::create_iter_body_gaps` for calculating gaps between bodies.
 /// - `Interactor` struct for representing parts of the protein involved in restraints.
 /// - `Air` struct for generating the AIR table.
-fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
+fn restraint_bodies(input_file: &str) -> Result<String, Box<dyn Error>> {
     // Read PDB file
     let pdb = match structure::load_pdb(input_file) {
         Ok(pdb) => pdb,
@@ -343,13 +343,13 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
         interactor_i.set_chain(g.chain.as_str());
         interactor_i.set_active(vec![g.res_i as i16]);
         interactor_i.set_active_atoms(vec![g.atom_i.clone()]);
-        interactor_i.set_passive_atoms(vec![g.atom_j.clone()]);
         interactor_i.set_target_distance(g.distance);
         interactor_i.set_lower_margin(0.0);
         interactor_i.set_upper_margin(0.0);
 
         interactor_j.set_chain(g.chain.as_str());
         interactor_j.set_passive(vec![g.res_j as i16]);
+        interactor_j.set_passive_atoms(vec![g.atom_j.clone()]);
 
         interactors.push(interactor_i);
         interactors.push(interactor_j);
@@ -360,7 +360,7 @@ fn restraint_bodies(input_file: &str) -> Result<(), Box<dyn Error>> {
 
     println!("{}", tbl);
 
-    Ok(())
+    Ok(tbl)
 }
 
 /// Lists the interface residues for each chain in a protein structure.
@@ -630,5 +630,19 @@ assign ( resid 47 and segid B )
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         };
+    }
+
+    #[test]
+    fn test_restraint_bodies() {
+        let expected_tbl = r"assign ( resid 1 and segid A and name CA ) ( resid 4 and segid A and name CA ) 10.2 0.0 0.0
+
+assign ( resid 2 and segid A and name CA ) ( resid 8 and segid A and name CA ) 14.2 0.0 0.0
+
+";
+
+        match restraint_bodies("tests/data/gaps.pdb") {
+            Ok(tbl) => assert_eq!(tbl, expected_tbl),
+            Err(_e) => (),
+        }
     }
 }
