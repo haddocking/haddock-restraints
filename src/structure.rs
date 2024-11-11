@@ -408,7 +408,8 @@ pub fn create_iter_body_gaps(
 ) -> Vec<Gap> {
     let mut rng = StdRng::seed_from_u64(42);
     let mut pairs: Vec<Gap> = Vec::new();
-    let body_ids: Vec<isize> = bodies.keys().cloned().collect();
+    let mut body_ids: Vec<isize> = bodies.keys().cloned().collect();
+    body_ids.sort();
     for (i, &body_id1) in body_ids.iter().enumerate() {
         for &body_id2 in body_ids[i + 1..].iter() {
             if let (Some(atoms1), Some(atoms2)) = (bodies.get(&body_id1), bodies.get(&body_id2)) {
