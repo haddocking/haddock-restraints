@@ -4,7 +4,7 @@ version = "0.6.2"
 edition = "2021"
 description = "Generate restraints to be used in HADDOCK"
 license = "MIT"
-repository = "https://github.com/rvhonorato/haddock-restraints"
+repository = "https://github.com/haddocking/haddock-restraints"
 authors = ["Rodrigo V. Honorato <r.vargashonorato@uu.nl>"]
 keywords = [
   "haddock",
