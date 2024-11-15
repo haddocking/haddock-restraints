@@ -33,6 +33,13 @@ enum Commands {
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
     },
+    #[command(about = "placeholder")]
+    UnambigTi {
+        #[arg(help = "PDB file")]
+        input: String,
+        #[arg(help = "Cutoff distance for interface residues")]
+        cutoff: f64,
+    },
     #[command(about = "Generate Unambiguous restraints to keep molecules together during docking")]
     Restraint {
         #[arg(help = "PDB file")]
@@ -45,7 +52,6 @@ enum Commands {
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
     },
-
     #[command(about = "Generate Z-restraints for a protein")]
     Z {
         #[arg(required = true, help = "Input file")]
@@ -88,6 +94,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Ti { input, cutoff } => {
             let _ = true_interface(input, cutoff);
+        }
+        Commands::UnambigTi { input, cutoff } => {
+            let _ = unambig_ti(input, cutoff);
         }
         Commands::Restraint { input } => {
             let _ = restraint_bodies(input);
@@ -172,6 +181,9 @@ fn gen_tbl(input_file: &str) {
     println!("{}", tbl);
 }
 
+fn unambig_ti(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Error>> {
+    Ok("placeholder".to_string())
+}
 /// Analyzes the true interface of a protein structure and generates Ambiguous Interaction Restraints (AIRs).
 ///
 /// This function reads a PDB file, identifies the true interface between chains based on a distance cutoff,
