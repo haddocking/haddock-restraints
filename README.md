@@ -18,6 +18,7 @@ A standalone command-line application to generate restraints to be used in HADDO
 - [`restraint`: Generate Unambiguous restraints to keep molecules together during docking](https://www.bonvinlab.org/haddock-restraints/restraint.html)
 - [`interface`: List residues in the interface](https://www.bonvinlab.org/haddock-restraints/interface.html)
 - [`z`: Generate Z-restraints for a protein](https://www.bonvinlab.org/haddock-restraints/z.html)
+- [`unambig-ti`: Generate unambiguous true-interface restraints from a PDB file](https://www.bonvinlab.org/haddock-restraints/unambig-ti.html)
 
 ## Usage
 
@@ -31,9 +32,9 @@ OR
 
 - Install it with [`cargo`](https://www.rust-lang.org/tools/install)
 
-    ```bash
-    cargo install haddock-restraints
-    ```
+  ```bash
+  cargo install haddock-restraints
+  ```
 
 ## Execute
 
@@ -44,12 +45,13 @@ Generate restraints to be used in HADDOCK
 Usage: haddock-restraints <COMMAND>
 
 Commands:
-  tbl        Generate TBL file from input file
-  ti         Generate true-interface restraints from a PDB file
-  restraint  Generate Unambiguous restraints to keep molecules together during docking
-  interface  List residues in the interface
-  z          Generate Z-restraints for a protein
-  help       Print this message or the help of the given subcommand(s)
+  tbl         Generate TBL file from input file
+  ti          Generate true-interface restraints from a PDB file
+  unambig-ti  Generate unambiguous true-interface restraints from a PDB file
+  restraint   Generate unambiguous restraints to keep molecules together during docking
+  interface   List residues in the interface
+  z           Generate Z-restraints for a protein
+  help        Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
