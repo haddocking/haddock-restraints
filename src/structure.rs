@@ -18,6 +18,17 @@ pub struct Bead {
     pub position: Vector3<f64>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Pair {
+    pub chain_i: String,
+    pub res_i: isize,
+    pub atom_i: String,
+    pub chain_j: String,
+    pub res_j: isize,
+    pub atom_j: String,
+    pub distance: f64,
+}
+
 /// Performs a neighbor search for residues within a specified radius of target residues.
 ///
 /// This function uses a K-d tree to efficiently find residues that are within a given radius
@@ -623,6 +634,88 @@ pub fn process_pdb(input_pdb: &str) -> BufReader<Cursor<Vec<u8>>> {
     pdb_handler::pad_lines(temp_path)
 }
 
+/// Finds the closest residue pairs between different protein chains within a specified distance cutoff.
+///
+/// This function analyzes inter-chain interactions by identifying the closest atom pairs between residues
+/// from different chains, using the alpha carbon (CA) atoms for distance calculation.
+///
+/// # Arguments
+///
+/// * pdb - A reference to a parsed PDB structure.
+/// * cutoff - A floating-point value specifying the maximum distance (in Angstroms) for considering residue pairs.
+///
+/// # Returns
+///
+/// A Vec<Pair> containing the closest residue pairs within the specified cutoff, sorted by distance.
+///
+/// # Functionality
+///
+/// 1. Iterates through all unique chain pairs in the PDB structure.
+/// 2. For each chain pair, finds the closest atoms between residues.
+/// 3. Selects pairs where the inter-residue distance is less than the specified cutoff.
+/// 4. Uses alpha carbon (CA) atoms for distance calculation and pair representation.
+/// 5. Sorts the resulting pairs by their inter-alpha carbon distance.
+///
+/// # Notes
+///
+/// - Only inter-chain interactions are considered.
+/// - The distance is calculated based on the closest atom pairs between residues.
+/// - The resulting pairs are sorted from shortest to longest distance.
+pub fn get_closest_residue_pairs(pdb: &pdbtbx::PDB, cutoff: f64) -> Vec<Pair> {
+    let mut closest_pairs = Vec::new();
+
+    let chains: Vec<_> = pdb.chains().collect();
+
+    for i in 0..chains.len() {
+        for j in (i + 1)..chains.len() {
+            let chain_i = &chains[i];
+            let chain_j = &chains[j];
+
+            for res_i in chain_i.residues() {
+                let mut min_distance = f64::MAX;
+                let mut closest_pair = None;
+
+                for res_j in chain_j.residues() {
+                    let mut atom_dist = f64::MAX;
+                    for atom_i in res_i.atoms() {
+                        for atom_j in res_j.atoms() {
+                            let distance = atom_i.distance(atom_j);
+                            if distance < atom_dist {
+                                atom_dist = distance;
+                            }
+                        }
+                    }
+                    if atom_dist < min_distance {
+                        min_distance = atom_dist;
+                        closest_pair = Some((res_j, res_i));
+                    }
+                }
+
+                if min_distance < cutoff {
+                    if let Some((res_j, res_i)) = closest_pair {
+                        let ca_i = res_i.atoms().find(|atom| atom.name() == "CA").unwrap();
+                        let ca_j = res_j.atoms().find(|atom| atom.name() == "CA").unwrap();
+                        let ca_ca_dist = ca_i.distance(ca_j);
+                        closest_pairs.push(Pair {
+                            chain_i: chain_i.id().to_string(),
+                            res_i: res_i.serial_number(),
+                            atom_i: ca_i.name().to_string(),
+                            chain_j: chain_j.id().to_string(),
+                            res_j: res_j.serial_number(),
+                            atom_j: ca_j.name().to_string(),
+                            distance: ca_ca_dist,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    closest_pairs.sort_by(|a, b| a.distance.partial_cmp(&b.distance).unwrap());
+
+    closest_pairs
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -685,5 +778,28 @@ mod tests {
             .iter()
             .filter(|line| line.starts_with("ATOM"))
             .all(|line| line.len() == 80));
+    }
+    #[test]
+    fn test_get_closest_residue_pairs() {
+        let pdb = load_pdb("tests/data/two_res.pdb").unwrap();
+        let observed_pairs = get_closest_residue_pairs(&pdb, 5.0);
+        let expected_pairs = vec![Pair {
+            chain_i: "A".to_string(),
+            chain_j: "B".to_string(),
+            atom_i: "CA".to_string(),
+            atom_j: "CA".to_string(),
+            res_i: 2,
+            res_j: 10,
+            distance: 9.1,
+        }];
+        assert_eq!(observed_pairs.len(), expected_pairs.len());
+        let pair = &observed_pairs[0];
+        assert_eq!(pair.chain_i, expected_pairs[0].chain_i);
+        assert_eq!(pair.chain_j, expected_pairs[0].chain_j);
+        assert_eq!(pair.atom_i, expected_pairs[0].atom_i);
+        assert_eq!(pair.atom_j, expected_pairs[0].atom_j);
+        assert_eq!(pair.res_i, expected_pairs[0].res_i);
+        assert_eq!(pair.res_j, expected_pairs[0].res_j);
+        assert!((pair.distance - 9.1).abs() < 0.1);
     }
 }
