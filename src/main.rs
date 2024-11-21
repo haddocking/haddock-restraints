@@ -241,23 +241,6 @@ fn unambig_ti(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Error>> 
         interactors.push(interactor_j);
     });
 
-    // for (n, pair) in interface_pairs.iter().enumerate() {
-    //     let mut interactor_i = Interactor::new(n as u16);
-    //
-    //     interactor_i.set_chain(&pair.chain_i.to_string());
-    //     interactor_i.set_active(vec![pair.res_i as i16]);
-    //     interactor_i.set_active_atoms(vec![pair.atom_i.clone()]);
-    //     interactor_i.add_target(n as u16 + 1);
-    //     interactor_i.set_target_distance(pair.distance);
-    //
-    //     // // interactor_j.set_passive(vec![pair.res_j as i16]);
-    //     // interactor_j.set_passive_atoms(vec![pair.atom_j.clone()]);
-    //     // interactor_j.add_target(n as u16);
-    //
-    //     interactors.push(interactor_i);
-    //     // interactors.push(interactor_j);
-    // }
-    //
     // Make the restraints
     let air = Air::new(interactors);
     let tbl = air.gen_tbl().unwrap();
