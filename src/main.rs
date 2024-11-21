@@ -33,7 +33,14 @@ enum Commands {
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
     },
-    #[command(about = "Generate Unambiguous restraints to keep molecules together during docking")]
+    #[command(about = "Generate unambiguous true-interface restraints from a PDB file")]
+    UnambigTi {
+        #[arg(help = "PDB file")]
+        input: String,
+        #[arg(help = "Cutoff distance for interface residues")]
+        cutoff: f64,
+    },
+    #[command(about = "Generate unambiguous restraints to keep molecules together during docking")]
     Restraint {
         #[arg(help = "PDB file")]
         input: String,
@@ -45,7 +52,6 @@ enum Commands {
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
     },
-
     #[command(about = "Generate Z-restraints for a protein")]
     Z {
         #[arg(required = true, help = "Input file")]
@@ -88,6 +94,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Ti { input, cutoff } => {
             let _ = true_interface(input, cutoff);
+        }
+        Commands::UnambigTi { input, cutoff } => {
+            let _ = unambig_ti(input, cutoff);
         }
         Commands::Restraint { input } => {
             let _ = restraint_bodies(input);
@@ -170,6 +179,74 @@ fn gen_tbl(input_file: &str) {
 
     let tbl = air.gen_tbl().unwrap();
     println!("{}", tbl);
+}
+
+/// Generates Unambiguous Topological Interactions (TIs) from a protein structure.
+///
+/// This function reads a PDB file, identifies the closest residue pairs based on a specified distance cutoff,
+/// and creates unambiguous interactors for each residue pair.
+///
+/// # Arguments
+///
+/// * input_file - A string slice that holds the path to the input PDB file.
+/// * cutoff - A reference to a f64 value specifying the distance cutoff (in Angstroms) for determining interactions.
+///
+/// # Returns
+///
+/// A Result<String, Box<dyn Error>> containing the generated TBL (Topological Restraints List) if successful.
+///
+/// # Functionality
+///
+/// 1. Loads the PDB file using the structure::load_pdb function.
+/// 2. Finds the closest residue pairs within the specified distance cutoff.
+/// 3. Creates Interactor instances for each residue pair.
+/// 4. Assigns chains, active/passive residues, and atoms to the interactors.
+/// 5. Generates the Topological Restraints List (TBL) using the created interactors.
+/// 6. Prints the generated TBL to stdout.
+///
+/// # Panics
+///
+/// This function will panic if:
+/// - The PDB file cannot be opened or parsed.
+fn unambig_ti(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Error>> {
+    let pdb = match structure::load_pdb(input_file) {
+        Ok(pdb) => pdb,
+        Err(e) => {
+            panic!("Error opening PDB file: {:?}", e);
+        }
+    };
+    let pairs = structure::get_closest_residue_pairs(&pdb, *cutoff);
+
+    let mut interactors: Vec<Interactor> = Vec::new();
+    let mut counter = 0;
+    pairs.iter().for_each(|g| {
+        let mut interactor_i = Interactor::new(counter);
+        counter += 1;
+        let mut interactor_j = Interactor::new(counter);
+        interactor_j.add_target(counter - 1);
+        interactor_i.add_target(counter);
+        counter += 1;
+
+        interactor_i.set_chain(g.chain_i.as_str());
+        interactor_i.set_active(vec![g.res_i as i16]);
+        interactor_i.set_active_atoms(vec![g.atom_i.clone()]);
+        interactor_i.set_target_distance(g.distance);
+
+        interactor_j.set_chain(g.chain_j.as_str());
+        interactor_j.set_passive(vec![g.res_j as i16]);
+        interactor_j.set_passive_atoms(vec![g.atom_j.clone()]);
+
+        interactors.push(interactor_i);
+        interactors.push(interactor_j);
+    });
+
+    // Make the restraints
+    let air = Air::new(interactors);
+    let tbl = air.gen_tbl().unwrap();
+
+    println!("{}", tbl);
+
+    Ok(tbl)
 }
 
 /// Analyzes the true interface of a protein structure and generates Ambiguous Interaction Restraints (AIRs).
@@ -641,6 +718,15 @@ assign ( resid 2 and segid A and name CA ) ( resid 8 and segid A and name CA ) 1
 ";
 
         match restraint_bodies("tests/data/gaps.pdb") {
+            Ok(tbl) => assert_eq!(tbl, expected_tbl),
+            Err(_e) => (),
+        }
+    }
+    #[test]
+    fn test_unambigti() {
+        let expected_tbl = "assign ( resid 2 and segid A and name CA ) ( resid 10 and segid B and name CA ) 9.1 2.0 0.0\n\n";
+
+        match unambig_ti("tests/data/two_res.pdb", &5.0) {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         }
