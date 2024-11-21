@@ -33,14 +33,14 @@ enum Commands {
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
     },
-    #[command(about = "placeholder")]
+    #[command(about = "Generate unambiguous true-interface restraints from a PDB file")]
     UnambigTi {
         #[arg(help = "PDB file")]
         input: String,
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
     },
-    #[command(about = "Generate Unambiguous restraints to keep molecules together during docking")]
+    #[command(about = "Generate unambiguous restraints to keep molecules together during docking")]
     Restraint {
         #[arg(help = "PDB file")]
         input: String,
@@ -220,7 +220,6 @@ fn unambig_ti(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Error>> 
     let mut interactors: Vec<Interactor> = Vec::new();
     let mut counter = 0;
     pairs.iter().for_each(|g| {
-        // let (chain, res_i, res_j) = g;
         let mut interactor_i = Interactor::new(counter);
         counter += 1;
         let mut interactor_j = Interactor::new(counter);
