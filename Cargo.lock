@@ -268,7 +268,7 @@ dependencies = [
  "kd-tree",
  "nalgebra",
  "pdb-handler",
- "pdbtbx",
+ "pdbtbx 0.11.0",
  "rand",
  "rust-sasa",
  "serde",
@@ -534,7 +534,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95ec009e78d186ba6209232b7b34b2ae24db0454346b94e743e1aaede1c340bf"
 dependencies = [
- "pdbtbx",
+ "pdbtbx 0.11.0",
  "regex",
  "serde",
 ]
@@ -550,6 +550,20 @@ dependencies = [
  "indexmap",
  "rayon",
  "rstar 0.11.0",
+ "serde",
+]
+
+[[package]]
+name = "pdbtbx"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "932b111b429ecfb94434569372e9538543b1abee9c51908f7a92f18b934f03bf"
+dependencies = [
+ "doc-cfg",
+ "flate2",
+ "indexmap",
+ "rayon",
+ "rstar 0.12.2",
  "serde",
 ]
 
@@ -707,13 +721,13 @@ dependencies = [
 
 [[package]]
 name = "rust-sasa"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e558f2e471a933b98a3218e604c6761ff1ebe7434b1a326d39c0338054651d5e"
+checksum = "5f2d2375f51fdebd91c5f057f03536bb748a7597cb3d388a634de147dec1da79"
 dependencies = [
  "lazy_static",
  "nalgebra",
- "pdbtbx",
+ "pdbtbx 0.12.0",
  "rayon",
  "rstar 0.12.2",
  "snafu",
