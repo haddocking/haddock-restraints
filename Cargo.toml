@@ -1,6 +1,6 @@
 [package]
 name = "haddock-restraints"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2021"
 description = "Generate restraints to be used in HADDOCK"
 license = "MIT"
@@ -20,11 +20,11 @@ categories = ["science::bioinformatics", "science"]
 rust-sasa = "0.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-pdbtbx = "0.12.0"
-rand = "0.8.4"
+pdbtbx = "0.12"
+rand = "0.8"
 kd-tree = "0.6.0"
 clap = { version = "4.5", features = ["derive"] }
-nalgebra = "0.33.0"
-itertools = "0.14.0"
-pdb-handler = ">=0.1.2"
+nalgebra = "0.33"
+itertools = "0.14"
+pdb-handler = ">=0.1"
 tempfile = "3.12"
