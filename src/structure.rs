@@ -577,6 +577,7 @@ pub fn get_atoms_from_resnumbers(pdb: &PDB, selection: &[isize]) -> Vec<Atom> {
 /// - The PDB is parsed with `pdbtbx::StrictnessLevel::Loose` to allow for some flexibility in the input format.
 /// - Any warnings generated during parsing are discarded. If you need to handle warnings,
 ///   consider modifying the function to return them along with the PDB structure.
+#[allow(deprecated)]
 pub fn load_pdb(input_pdb: &str) -> Result<PDB, Vec<PDBError>> {
     let processed_buf = process_pdb(input_pdb);
 
