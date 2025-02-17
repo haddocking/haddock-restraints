@@ -43,11 +43,6 @@ impl<'a> Finder<'a> {
     ///
     /// This method initializes the `Finder` struct by extracting the chain and residue information from the provided `PDB` reference. It constructs two hashmaps: `chain_lookup` (for mapping atom serial numbers to chain IDs) and `residue_lookup` (for mapping atom serial numbers to residue serial numbers).
     ///
-    /// # Parameters
-    /// - `pdb`: A reference to a `PDB` object that contains the protein structure data.
-    ///
-    /// # Returns
-    /// A new instance of `Finder` initialized with the provided `PDB`.
     fn new(pdb: &'a PDB) -> Self {
         let chain_lookup = pdb
             .chains()
@@ -85,14 +80,6 @@ impl<'a> Finder<'a> {
     ///
     /// This method looks up the chain ID for an atom based on its serial number. If no chain is found, the default value "A" is returned.
     ///
-    /// # Parameters
-    /// - `atom`: A reference to an `Atom` whose chain ID is to be found.
-    ///
-    /// # Returns
-    /// A `String` representing the chain ID associated with the atom.
-    ///
-    /// # Panics
-    /// This method will panic if the atom's serial number is not found in the `chain_lookup` map (should not happen under normal circumstances).
     fn find_chain_id(&self, atom: &Atom) -> String {
         self.chain_lookup
             .get(&atom.serial_number())
@@ -104,14 +91,6 @@ impl<'a> Finder<'a> {
     ///
     /// This method looks up the residue serial number for an atom based on its serial number. If no residue number is found, the default value `0` is returned.
     ///
-    /// # Parameters
-    /// - `atom`: A reference to an `Atom` whose residue serial number is to be found.
-    ///
-    /// # Returns
-    /// An `isize` representing the residue serial number associated with the atom.
-    ///
-    /// # Panics
-    /// This method will panic if the atom's serial number is not found in the `residue_lookup` map (should not happen under normal circumstances).
     fn find_residue_number(&self, atom: &Atom) -> isize {
         *self.residue_lookup.get(&atom.serial_number()).unwrap_or(&0)
     }
