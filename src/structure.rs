@@ -1,3 +1,4 @@
+use core::f64;
 use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
@@ -18,7 +19,7 @@ pub struct Bead {
     pub position: Vector3<f64>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Pair {
     pub chain_i: String,
     pub res_i: isize,
@@ -27,6 +28,93 @@ pub struct Pair {
     pub res_j: isize,
     pub atom_j: String,
     pub distance: f64,
+}
+
+/// The `Finder` struct contains two hashmaps to quickly retrieve the chain ID and residue number associated with a given atom by its serial number. These lookups are initialized from the provided PDB file during instantiation.
+///
+struct Finder<'a> {
+    pdb: &'a PDB,
+    chain_lookup: HashMap<usize, String>,
+    residue_lookup: HashMap<usize, isize>,
+}
+
+impl<'a> Finder<'a> {
+    /// Creates a new `Finder` instance.
+    ///
+    /// This method initializes the `Finder` struct by extracting the chain and residue information from the provided `PDB` reference. It constructs two hashmaps: `chain_lookup` (for mapping atom serial numbers to chain IDs) and `residue_lookup` (for mapping atom serial numbers to residue serial numbers).
+    ///
+    /// # Parameters
+    /// - `pdb`: A reference to a `PDB` object that contains the protein structure data.
+    ///
+    /// # Returns
+    /// A new instance of `Finder` initialized with the provided `PDB`.
+    fn new(pdb: &'a PDB) -> Self {
+        let chain_lookup = pdb
+            .chains()
+            .flat_map(|chain| {
+                let chain_id = chain.id().to_string();
+                chain.residues().flat_map(move |residue| {
+                    residue.atoms().map({
+                        let v = chain_id.clone();
+                        move |atom| (atom.serial_number(), v.clone())
+                    })
+                })
+            })
+            .collect();
+
+        let residue_lookup = pdb
+            .chains()
+            .flat_map(|chain| {
+                chain.residues().flat_map(|residue| {
+                    let res_num = residue.serial_number();
+                    residue
+                        .atoms()
+                        .map(move |atom| (atom.serial_number(), res_num))
+                })
+            })
+            .collect();
+
+        Finder {
+            pdb,
+            chain_lookup,
+            residue_lookup,
+        }
+    }
+
+    /// Finds the chain ID associated with a given atom.
+    ///
+    /// This method looks up the chain ID for an atom based on its serial number. If no chain is found, the default value "A" is returned.
+    ///
+    /// # Parameters
+    /// - `atom`: A reference to an `Atom` whose chain ID is to be found.
+    ///
+    /// # Returns
+    /// A `String` representing the chain ID associated with the atom.
+    ///
+    /// # Panics
+    /// This method will panic if the atom's serial number is not found in the `chain_lookup` map (should not happen under normal circumstances).
+    fn find_chain_id(&self, atom: &Atom) -> String {
+        self.chain_lookup
+            .get(&atom.serial_number())
+            .unwrap_or(&"A".to_string())
+            .clone()
+    }
+
+    /// Finds the residue serial number associated with a given atom.
+    ///
+    /// This method looks up the residue serial number for an atom based on its serial number. If no residue number is found, the default value `0` is returned.
+    ///
+    /// # Parameters
+    /// - `atom`: A reference to an `Atom` whose residue serial number is to be found.
+    ///
+    /// # Returns
+    /// An `isize` representing the residue serial number associated with the atom.
+    ///
+    /// # Panics
+    /// This method will panic if the atom's serial number is not found in the `residue_lookup` map (should not happen under normal circumstances).
+    fn find_residue_number(&self, atom: &Atom) -> isize {
+        *self.residue_lookup.get(&atom.serial_number()).unwrap_or(&0)
+    }
 }
 
 /// Performs a neighbor search for residues within a specified radius of target residues.
@@ -280,7 +368,7 @@ pub fn get_chains_in_contact(pdb: &pdbtbx::PDB, cutoff: f64) -> HashSet<(String,
     chains_in_contact
 }
 
-/// Represents a gap between two residues in a protein chain.
+/// Represents two residues in a protein chain.
 ///
 /// A `Gap` is defined by two residues that are sequential in the primary structure
 /// but have a distance between their atoms that exceeds a certain threshold in the
@@ -717,6 +805,53 @@ pub fn get_closest_residue_pairs(pdb: &pdbtbx::PDB, cutoff: f64) -> Vec<Pair> {
     closest_pairs
 }
 
+/// Finds pairs of atoms between a ligand and nearby protein residues within a certain distance.
+///
+/// This function processes the given PDB structure to identify heteroatoms (ligand atoms) and
+/// their neighboring atoms within a specified distance threshold (5.0 Å). It then finds the closest
+/// protein atom for each ligand atom and returns a vector of `Pair` structures containing information
+/// about the ligand atom and its closest protein atom. The result is a list of ligand-protein pairs
+/// and their corresponding distance, residue, and chain information.
+///
+pub fn gaps_around_ligand(pdb: &PDB) -> Vec<Gap> {
+    let ligand_atoms: Vec<&Atom> = pdb.atoms().filter(|a| a.hetero()).collect();
+    let ligand_residues: Vec<&Residue> = pdb
+        .residues()
+        .filter(|r| r.atoms().any(|a| a.hetero()))
+        .collect();
+
+    let neighbors = neighbor_search(pdb.clone(), ligand_residues, 5.0);
+    let protein_atoms = get_atoms_from_resnumbers(pdb, &neighbors);
+
+    let mut result: Vec<Gap> = Vec::new();
+
+    let finder = Finder::new(pdb);
+
+    for ligand_atom in ligand_atoms {
+        let closest_protein_atom = protein_atoms
+            .iter()
+            .map(|a| (a, ligand_atom.distance(a)))
+            .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+            .unwrap();
+
+        let ligand_chain = finder.find_chain_id(ligand_atom);
+        let protein_chain = finder.find_chain_id(closest_protein_atom.0);
+
+        if ligand_chain == protein_chain {
+            result.push(Gap {
+                chain: ligand_chain,
+                res_i: finder.find_residue_number(ligand_atom),
+                atom_i: ligand_atom.name().to_string(),
+                res_j: finder.find_residue_number(closest_protein_atom.0),
+                atom_j: closest_protein_atom.0.name().to_string(),
+                distance: closest_protein_atom.1,
+            })
+        }
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -784,7 +919,7 @@ mod tests {
     fn test_get_closest_residue_pairs() {
         let pdb = load_pdb("tests/data/two_res.pdb").unwrap();
         let observed_pairs = get_closest_residue_pairs(&pdb, 5.0);
-        let expected_pairs = vec![Pair {
+        let expected_pairs = &[Pair {
             chain_i: "A".to_string(),
             chain_j: "B".to_string(),
             atom_i: "CA".to_string(),
@@ -802,5 +937,77 @@ mod tests {
         assert_eq!(pair.res_i, expected_pairs[0].res_i);
         assert_eq!(pair.res_j, expected_pairs[0].res_j);
         assert!((pair.distance - 9.1).abs() < 0.1);
+    }
+    #[test]
+    fn test_gaps_around_ligand() {
+        let pdb = load_pdb("tests/data/prot_ligand.pdb").unwrap();
+        let observed = gaps_around_ligand(&pdb);
+        let expected = &[
+            Gap {
+                chain: "E".to_string(),
+                res_i: 351,
+                atom_i: "N1".to_string(),
+                res_j: 123,
+                atom_j: "N".to_string(),
+                distance: 3.0400192433601467,
+            },
+            Gap {
+                chain: "E".to_string(),
+                res_i: 351,
+                atom_i: "C2".to_string(),
+                res_j: 327,
+                atom_j: "CE2".to_string(),
+                distance: 3.79,
+            },
+        ];
+
+        // Compare chain, residue, and atom names
+        assert_eq!(observed[0].chain, expected[0].chain);
+        assert_eq!(observed[0].res_i, expected[0].res_i);
+        assert_eq!(observed[0].atom_i, expected[0].atom_i);
+        assert_eq!(observed[0].res_j, expected[0].res_j);
+        assert_eq!(observed[0].atom_j, expected[0].atom_j);
+
+        assert_eq!(observed[1].chain, expected[1].chain);
+        assert_eq!(observed[1].res_i, expected[1].res_i);
+        assert_eq!(observed[1].atom_i, expected[1].atom_i);
+        assert_eq!(observed[1].res_j, expected[1].res_j);
+        assert_eq!(observed[1].atom_j, expected[1].atom_j);
+
+        // TODO: Find a smart way to check the distances
+        //
+        // assert_eq!(observed[0].distance, expected[0].distance);
+        // assert_eq!(observed[1].distance, expected[1].distance);
+    }
+
+    #[test]
+    fn test_finder() {
+        let pdb = load_pdb("tests/data/complex.pdb").unwrap();
+        let finder = Finder::new(&pdb);
+
+        assert_eq!(finder.chain_lookup.keys().len(), 924);
+        assert_eq!(finder.residue_lookup.keys().len(), 924)
+    }
+
+    #[test]
+    fn test_finder_find_chain_id() {
+        let pdb = load_pdb("tests/data/complex.pdb").unwrap();
+        let finder = Finder::new(&pdb);
+
+        let found = finder.find_chain_id(pdb.atom(1).expect(""));
+        assert_eq!(found, "A");
+
+        let found = finder.find_chain_id(pdb.atom(700).expect(""));
+        assert_eq!(found, "B");
+    }
+
+    #[test]
+    fn test_finder_find_residue_number() {
+        let pdb = load_pdb("tests/data/complex.pdb").unwrap();
+        let finder = Finder::new(&pdb);
+
+        let found = finder.find_residue_number(pdb.atom(1).unwrap());
+
+        assert_eq!(found, 929)
     }
 }

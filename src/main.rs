@@ -403,7 +403,12 @@ fn restraint_bodies(input_file: &str) -> Result<String, Box<dyn Error>> {
 
     // Find in-contiguous chains
     let bodies = structure::find_bodies(&pdb);
-    let gaps = structure::create_iter_body_gaps(&bodies);
+    let mut gaps = structure::create_iter_body_gaps(&bodies);
+
+    // Find same-chain ligands
+    let ligand_gaps = structure::gaps_around_ligand(&pdb);
+
+    gaps.extend(ligand_gaps);
 
     // Create the interactors
     let mut interactors: Vec<Interactor> = Vec::new();
