@@ -32,18 +32,17 @@ pub struct Pair {
 
 /// The `Finder` struct contains two hashmaps to quickly retrieve the chain ID and residue number associated with a given atom by its serial number. These lookups are initialized from the provided PDB file during instantiation.
 ///
-struct Finder<'a> {
-    pdb: &'a PDB,
+struct Finder {
     chain_lookup: HashMap<usize, String>,
     residue_lookup: HashMap<usize, isize>,
 }
 
-impl<'a> Finder<'a> {
+impl Finder {
     /// Creates a new `Finder` instance.
     ///
     /// This method initializes the `Finder` struct by extracting the chain and residue information from the provided `PDB` reference. It constructs two hashmaps: `chain_lookup` (for mapping atom serial numbers to chain IDs) and `residue_lookup` (for mapping atom serial numbers to residue serial numbers).
     ///
-    fn new(pdb: &'a PDB) -> Self {
+    fn new(pdb: &PDB) -> Self {
         let chain_lookup = pdb
             .chains()
             .flat_map(|chain| {
@@ -70,7 +69,6 @@ impl<'a> Finder<'a> {
             .collect();
 
         Finder {
-            pdb,
             chain_lookup,
             residue_lookup,
         }
