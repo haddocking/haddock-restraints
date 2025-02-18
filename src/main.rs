@@ -408,7 +408,24 @@ fn restraint_bodies(input_file: &str) -> Result<String, Box<dyn Error>> {
     // Find same-chain ligands
     let ligand_gaps = structure::gaps_around_ligand(&pdb);
 
-    gaps.extend(ligand_gaps);
+    // NOTE: One restraint per atom of the ligand might be too much, apply some filtering
+    // - no duplicated atoms in the protein should be used
+    // - select every-other pair
+    let filtered_gaps = structure::filter_unique_by_atom_j(ligand_gaps);
+    let every_other_gaps: Vec<structure::Gap> = filtered_gaps
+        .into_iter()
+        .enumerate()
+        .filter_map(|(idx, g)| {
+            if idx % 2 == 0 {
+                // select even
+                Some(g)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    gaps.extend(every_other_gaps);
 
     // Create the interactors
     let mut interactors: Vec<Interactor> = Vec::new();

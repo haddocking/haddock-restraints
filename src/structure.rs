@@ -371,6 +371,26 @@ pub struct Gap {
     pub distance: f64,
 }
 
+/// Filters a vector of `Gap` elements, retaining only the unique elements based on the `atom_j` value.
+///
+/// This function removes duplicate `Gap` elements where the `atom_j` value is the same across multiple entries,
+/// keeping only the first occurrence of each unique `atom_j`. This is useful when you only need to retain
+/// one `Gap` entry for each unique `atom_j` regardless of the `atom_i` or other fields.
+///
+pub fn filter_unique_by_atom_j(gaps: Vec<Gap>) -> Vec<Gap> {
+    let mut seen = HashSet::new();
+    let mut unique: Vec<Gap> = Vec::new();
+
+    gaps.into_iter().for_each(|g| {
+        if !seen.contains(&g.atom_j) {
+            seen.insert(g.atom_j.clone());
+            unique.push(g)
+        }
+    });
+
+    unique
+}
+
 /// Identifies separate bodies within a protein structure based on CA atom distances.
 ///
 /// This function segments the protein into separate "bodies" by analyzing the distances
@@ -991,5 +1011,103 @@ mod tests {
         let found = finder.find_residue_number(pdb.atom(1).unwrap());
 
         assert_eq!(found, 929)
+    }
+
+    #[test]
+    fn test_filter_unique_by_atom_j() {
+        let gaps = vec![
+            Gap {
+                chain: "A".to_string(),
+                atom_i: "C".to_string(),
+                atom_j: "B".to_string(),
+                res_i: 1,
+                res_j: 2,
+                distance: 3.5,
+            },
+            Gap {
+                chain: "A".to_string(),
+                atom_i: "A".to_string(),
+                atom_j: "B".to_string(),
+                res_i: 3,
+                res_j: 4,
+                distance: 2.8,
+            },
+            Gap {
+                chain: "B".to_string(),
+                atom_i: "C".to_string(),
+                atom_j: "D".to_string(),
+                res_i: 5,
+                res_j: 6,
+                distance: 4.1,
+            },
+            Gap {
+                chain: "A".to_string(),
+                atom_i: "E".to_string(),
+                atom_j: "B".to_string(),
+                res_i: 7,
+                res_j: 8,
+                distance: 1.5,
+            },
+        ];
+
+        let filtered = filter_unique_by_atom_j(gaps);
+
+        // The function should remove duplicates based on `atom_j` and keep only the first occurrence.
+        assert_eq!(filtered.len(), 2); // "B" and "D" should remain
+        assert_eq!(filtered[0].atom_j, "B");
+        assert_eq!(filtered[1].atom_j, "D");
+
+        // Verify the correct `atom_j` is retained
+        assert!(filtered
+            .iter()
+            .all(|gap| gap.atom_j != "B" || gap.atom_i == "C"));
+    }
+
+    #[test]
+    fn test_no_duplicates() {
+        let gaps = vec![
+            Gap {
+                chain: "A".to_string(),
+                atom_i: "C".to_string(),
+                atom_j: "B".to_string(),
+                res_i: 1,
+                res_j: 2,
+                distance: 3.5,
+            },
+            Gap {
+                chain: "A".to_string(),
+                atom_i: "A".to_string(),
+                atom_j: "D".to_string(),
+                res_i: 3,
+                res_j: 4,
+                distance: 2.8,
+            },
+        ];
+
+        let filtered = filter_unique_by_atom_j(gaps);
+        assert_eq!(filtered.len(), 2); // No duplicates, so the length should be the same
+    }
+
+    #[test]
+    fn test_empty_input() {
+        let gaps: Vec<Gap> = Vec::new();
+        let filtered = filter_unique_by_atom_j(gaps);
+        assert!(filtered.is_empty()); // Should return an empty list
+    }
+
+    #[test]
+    fn test_single_element() {
+        let gaps = vec![Gap {
+            chain: "A".to_string(),
+            atom_i: "C".to_string(),
+            atom_j: "B".to_string(),
+            res_i: 1,
+            res_j: 2,
+            distance: 3.5,
+        }];
+
+        let filtered = filter_unique_by_atom_j(gaps);
+        assert_eq!(filtered.len(), 1); // Single element, should remain
+        assert_eq!(filtered[0].atom_j, "B");
     }
 }
