@@ -2,7 +2,6 @@ use crate::sasa;
 use crate::structure;
 use core::panic;
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 /// Represents an interactor in a molecular system.
