@@ -388,9 +388,6 @@ fn true_interface(
     if let Some(output_f) = pml {
         air.gen_pml(output_f)
     };
-    // let pml = air.gen_pml();
-    //
-    // println!("{}", pml);
 
     Ok(tbl)
 }
