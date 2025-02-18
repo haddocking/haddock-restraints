@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use itertools::Itertools;
 use kd_tree::KdTree;
 use nalgebra::Vector3;
-use pdbtbx::{Atom, PDB};
+use pdbtbx::{Atom, Element, PDB};
 use pdbtbx::{PDBError, Residue};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
@@ -791,7 +791,11 @@ pub fn get_closest_residue_pairs(pdb: &pdbtbx::PDB, cutoff: f64) -> Vec<Pair> {
 /// and their corresponding distance, residue, and chain information.
 ///
 pub fn gaps_around_ligand(pdb: &PDB) -> Vec<Gap> {
-    let ligand_atoms: Vec<&Atom> = pdb.atoms().filter(|a| a.hetero()).collect();
+    let ligand_atoms: Vec<&Atom> = pdb
+        .atoms()
+        .filter(|a| a.hetero() && *a.element().unwrap() != Element::H)
+        .collect();
+
     let ligand_residues: Vec<&Residue> = pdb
         .residues()
         .filter(|r| r.atoms().any(|a| a.hetero()))
@@ -807,6 +811,7 @@ pub fn gaps_around_ligand(pdb: &PDB) -> Vec<Gap> {
     for ligand_atom in ligand_atoms {
         let closest_protein_atom = protein_atoms
             .iter()
+            .filter(|a| *a.element().unwrap() != Element::H)
             .map(|a| (a, ligand_atom.distance(a)))
             .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
             .unwrap();
