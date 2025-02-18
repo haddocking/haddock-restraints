@@ -3,6 +3,7 @@ mod input;
 mod interactor;
 mod sasa;
 mod structure;
+mod utils;
 use air::Air;
 use core::panic;
 use interactor::Interactor;
@@ -25,6 +26,13 @@ enum Commands {
     Tbl {
         #[arg(help = "Input file")]
         input: String,
+
+        #[arg(
+            long,
+            help = "PyMol Script (.pml) output file",
+            value_name = "output.pml"
+        )]
+        pml: Option<String>,
     },
     #[command(about = "Generate true-interface restraints from a PDB file")]
     Ti {
@@ -32,6 +40,12 @@ enum Commands {
         input: String,
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
+        #[arg(
+            long,
+            help = "PyMol Script (.pml) output file",
+            value_name = "output.pml"
+        )]
+        pml: Option<String>,
     },
     #[command(about = "Generate unambiguous true-interface restraints from a PDB file")]
     UnambigTi {
@@ -39,11 +53,23 @@ enum Commands {
         input: String,
         #[arg(help = "Cutoff distance for interface residues")]
         cutoff: f64,
+        #[arg(
+            long,
+            help = "PyMol Script (.pml) output file",
+            value_name = "output.pml"
+        )]
+        pml: Option<String>,
     },
     #[command(about = "Generate unambiguous restraints to keep molecules together during docking")]
     Restraint {
         #[arg(help = "PDB file")]
         input: String,
+        #[arg(
+            long,
+            help = "PyMol Script (.pml) output file",
+            value_name = "output.pml"
+        )]
+        pml: Option<String>,
     },
     #[command(about = "List residues in the interface")]
     Interface {
@@ -89,17 +115,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Tbl { input } => {
-            gen_tbl(input);
+        Commands::Tbl { input, pml } => {
+            gen_tbl(input, pml);
         }
-        Commands::Ti { input, cutoff } => {
-            let _ = true_interface(input, cutoff);
+        Commands::Ti { input, cutoff, pml } => {
+            let _ = true_interface(input, cutoff, pml);
         }
-        Commands::UnambigTi { input, cutoff } => {
-            let _ = unambig_ti(input, cutoff);
+        Commands::UnambigTi { input, cutoff, pml } => {
+            let _ = unambig_ti(input, cutoff, pml);
         }
-        Commands::Restraint { input } => {
-            let _ = restraint_bodies(input);
+        Commands::Restraint { input, pml } => {
+            let _ = restraint_bodies(input, pml);
         }
         Commands::Interface { input, cutoff } => {
             let _ = list_interface(input, cutoff);
@@ -156,7 +182,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// - `input::read_json_file` for reading the JSON input.
 /// - `Air` struct and its methods for processing the interactors and generating the table.
 /// - Various methods on the `Interactor` struct for processing individual interactors.
-fn gen_tbl(input_file: &str) {
+fn gen_tbl(input_file: &str, pml: &Option<String>) {
     let mut interactors = input::read_json_file(input_file).unwrap();
 
     interactors.iter_mut().for_each(|interactor| {
@@ -178,7 +204,12 @@ fn gen_tbl(input_file: &str) {
     let air = Air::new(interactors);
 
     let tbl = air.gen_tbl().unwrap();
+
     println!("{}", tbl);
+
+    if let Some(output_f) = pml {
+        air.gen_pml(output_f)
+    };
 }
 
 /// Generates Unambiguous Topological Interactions (TIs) from a protein structure.
@@ -208,7 +239,11 @@ fn gen_tbl(input_file: &str) {
 ///
 /// This function will panic if:
 /// - The PDB file cannot be opened or parsed.
-fn unambig_ti(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Error>> {
+fn unambig_ti(
+    input_file: &str,
+    cutoff: &f64,
+    pml: &Option<String>,
+) -> Result<String, Box<dyn Error>> {
     let pdb = match structure::load_pdb(input_file) {
         Ok(pdb) => pdb,
         Err(e) => {
@@ -245,6 +280,10 @@ fn unambig_ti(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Error>> 
     let tbl = air.gen_tbl().unwrap();
 
     println!("{}", tbl);
+
+    if let Some(output_f) = pml {
+        air.gen_pml(output_f)
+    };
 
     Ok(tbl)
 }
@@ -291,7 +330,11 @@ fn unambig_ti(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Error>> 
 /// - `structure::get_true_interface` and `structure::get_chains_in_contact` for interface analysis.
 /// - `Interactor` struct for representing protein chains and their interactions.
 /// - `Air` struct for generating the AIR table.
-fn true_interface(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Error>> {
+fn true_interface(
+    input_file: &str,
+    cutoff: &f64,
+    pml: &Option<String>,
+) -> Result<String, Box<dyn Error>> {
     // Read PDB file
     let pdb = match structure::load_pdb(input_file) {
         Ok(pdb) => pdb,
@@ -341,6 +384,10 @@ fn true_interface(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Erro
     let tbl = air.gen_tbl().unwrap();
 
     println!("{}", tbl);
+
+    if let Some(output_f) = pml {
+        air.gen_pml(output_f)
+    };
 
     Ok(tbl)
 }
@@ -392,7 +439,7 @@ fn true_interface(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Erro
 /// - `structure::create_iter_body_gaps` for calculating gaps between bodies.
 /// - `Interactor` struct for representing parts of the protein involved in restraints.
 /// - `Air` struct for generating the AIR table.
-fn restraint_bodies(input_file: &str) -> Result<String, Box<dyn Error>> {
+fn restraint_bodies(input_file: &str, pml: &Option<String>) -> Result<String, Box<dyn Error>> {
     // Read PDB file
     let pdb = match structure::load_pdb(input_file) {
         Ok(pdb) => pdb,
@@ -459,6 +506,9 @@ fn restraint_bodies(input_file: &str) -> Result<String, Box<dyn Error>> {
 
     println!("{}", tbl);
 
+    if let Some(output_f) = pml {
+        air.gen_pml(output_f)
+    };
     Ok(tbl)
 }
 
@@ -688,7 +738,8 @@ assign ( resid 47 and segid B )
 
 "#;
 
-        match true_interface("tests/data/complex.pdb", &3.0) {
+        let opt: Option<String> = None;
+        match true_interface("tests/data/complex.pdb", &3.0, &opt) {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         };
@@ -725,7 +776,8 @@ assign ( resid 47 and segid B )
 
 "#;
 
-        match true_interface("tests/data/complex_BA.pdb", &3.0) {
+        let opt: Option<String> = None;
+        match true_interface("tests/data/complex_BA.pdb", &3.0, &opt) {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         };
@@ -739,16 +791,18 @@ assign ( resid 2 and segid A and name CA ) ( resid 8 and segid A and name CA ) 1
 
 ";
 
-        match restraint_bodies("tests/data/gaps.pdb") {
+        let opt: Option<String> = None;
+        match restraint_bodies("tests/data/gaps.pdb", &opt) {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         }
     }
     #[test]
     fn test_unambigti() {
+        let opt: Option<String> = None;
         let expected_tbl = "assign ( resid 2 and segid A and name CA ) ( resid 10 and segid B and name CA ) 9.1 2.0 0.0\n\n";
 
-        match unambig_ti("tests/data/two_res.pdb", &5.0) {
+        match unambig_ti("tests/data/two_res.pdb", &5.0, &opt) {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         }

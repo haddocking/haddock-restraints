@@ -1,4 +1,6 @@
-use crate::interactor;
+use std::collections::HashSet;
+
+use crate::{interactor, utils};
 
 /// Represents the Air (Ambiguous Interaction Restraints) structure.
 ///
@@ -75,6 +77,50 @@ impl Air {
             tbl.push_str(&block);
         }
         Ok(tbl)
+    }
+
+    pub fn gen_pml(&self, output_f: &str) {
+        let mut pml = String::new();
+
+        // General settings
+        pml.push_str("set label_size, 0\n");
+        pml.push_str("set dash_gap, 0\n");
+        pml.push_str("set dash_color, yellow\n");
+
+        let mut active: HashSet<(i16, &str)> = HashSet::new();
+        let mut passive: HashSet<(i16, &str)> = HashSet::new();
+
+        for interactor in self.0.iter() {
+            let partners = self.find_partners(interactor);
+
+            if partners.is_empty() {
+                continue;
+            }
+
+            interactor.active().iter().for_each(|r| {
+                active.insert((*r, interactor.chain()));
+            });
+
+            let target_res = interactor::collect_residues(partners);
+
+            target_res.iter().for_each(|r| {
+                let resnum = r.res_number.unwrap_or(0);
+                passive.insert((resnum, r.chain_id));
+            });
+
+            let block = interactor.make_pml_string(target_res);
+            pml.push_str(&block);
+        }
+
+        pml.push_str("color white\n");
+        passive.iter().for_each(|(resnum, chain)| {
+            pml.push_str(format!("color green, (resi {} and chain {})\n", resnum, chain).as_str())
+        });
+        active.iter().for_each(|(resnum, chain)| {
+            pml.push_str(format!("color red, (resi {} and chain {})\n", resnum, chain).as_str())
+        });
+
+        utils::write_string_to_file(&pml, output_f).expect("Could not write pml")
     }
 }
 
