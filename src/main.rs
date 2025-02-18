@@ -177,8 +177,12 @@ fn gen_tbl(input_file: &str) {
 
     let air = Air::new(interactors);
 
-    let tbl = air.gen_tbl().unwrap();
-    println!("{}", tbl);
+    // let tbl = air.gen_tbl().unwrap();
+    // println!("{}", tbl);
+
+    let pml = air.gen_pml();
+
+    println!("{}", pml);
 }
 
 /// Generates Unambiguous Topological Interactions (TIs) from a protein structure.
@@ -341,6 +345,10 @@ fn true_interface(input_file: &str, cutoff: &f64) -> Result<String, Box<dyn Erro
     let tbl = air.gen_tbl().unwrap();
 
     println!("{}", tbl);
+
+    // let pml = air.gen_pml();
+    //
+    // println!("{}", pml);
 
     Ok(tbl)
 }

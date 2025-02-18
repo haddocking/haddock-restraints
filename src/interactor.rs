@@ -2,6 +2,7 @@ use crate::sasa;
 use crate::structure;
 use core::panic;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 /// Represents an interactor in a molecular system.
@@ -592,12 +593,44 @@ impl Interactor {
         }
         block
     }
+
+    pub fn make_pml_string(&self, passive_res: Vec<PassiveResidues>) -> String {
+        let mut pml = String::new();
+        let mut _active: Vec<i16> = self.active().iter().cloned().collect();
+        _active.sort();
+
+        let mut passive_res: Vec<PassiveResidues> = passive_res.clone();
+        passive_res.sort_by(|a, b| a.res_number.cmp(&b.res_number));
+
+        for resnum in _active {
+            let identifier = format!("{}-{}", resnum, self.chain);
+            let active_sel = format!("resi {} and name CA and chain {}", resnum, self.chain);
+
+            for passive_resnum in &passive_res {
+                let passive_sel = format!(
+                    "resi {} and name CA and chain {}",
+                    passive_resnum.res_number.unwrap(),
+                    passive_resnum.chain_id
+                );
+
+                pml.push_str(
+                    format!(
+                        "distance {}, ({}), ({})\n",
+                        identifier, active_sel, passive_sel
+                    )
+                    .as_str(),
+                )
+            }
+        }
+
+        pml
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct PassiveResidues<'a> {
-    chain_id: &'a str,
-    res_number: Option<i16>,
+    pub chain_id: &'a str,
+    pub res_number: Option<i16>,
     wildcard: &'a str,
     // TODO: ADD THE ATOM ATOM NAMES HERE, THEY SHOULD BE USED WHEN GENERATING THE BLOCK
     atom_str: &'a Option<Vec<String>>,
