@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::interactor;
+use crate::{interactor, utils};
 
 /// Represents the Air (Ambiguous Interaction Restraints) structure.
 ///
@@ -79,7 +79,7 @@ impl Air {
         Ok(tbl)
     }
 
-    pub fn gen_pml(&self) -> String {
+    pub fn gen_pml(&self, output_f: &str) {
         let mut pml = String::new();
 
         // General settings
@@ -120,7 +120,7 @@ impl Air {
             pml.push_str(format!("color red, (resi {} and chain {})\n", resnum, chain).as_str())
         });
 
-        pml
+        utils::write_string_to_file(&pml, output_f).expect("Could not write pml")
     }
 }
 
