@@ -47,6 +47,9 @@ pub struct Interactor {
     /// Optional flag to determine if passive residues should be derived from active ones.
     passive_from_active: Option<bool>,
 
+    /// Optional radius to define the neighbor search radius
+    passive_from_active_radius: Option<f64>,
+
     /// Optional flag to treat surface residues as passive.
     surface_as_passive: Option<bool>,
 
@@ -85,6 +88,7 @@ impl Interactor {
             target: HashSet::new(),
             structure: None,
             passive_from_active: None,
+            passive_from_active_radius: None,
             surface_as_passive: None,
             filter_buried: None,
             filter_buried_cutoff: None,
@@ -152,7 +156,8 @@ impl Interactor {
                     self.active.iter().map(|x| *x as isize).collect(),
                 );
 
-                let neighbors = structure::neighbor_search(pdb.clone(), residues, 5.0);
+                let search_cutoff = self.passive_from_active_radius.unwrap_or(6.5);
+                let neighbors = structure::neighbor_search(pdb.clone(), residues, search_cutoff);
 
                 // Add these neighbors to the passive set
                 neighbors.iter().for_each(|x| {
@@ -790,6 +795,7 @@ mod tests {
         let mut interactor = Interactor::new(1);
         interactor.set_structure("tests/data/complex.pdb");
         interactor.set_active(vec![1]);
+        interactor.passive_from_active_radius = Some(5.0);
         interactor.set_passive_from_active();
 
         let expected_passive = [16, 15, 18, 3, 19, 61, 56, 17, 2, 62, 63];

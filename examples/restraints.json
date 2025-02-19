@@ -7,6 +7,7 @@
     "structure": "2oob.pdb",
     "target": [2],
     "passive_from_active": true,
+    "passive_from_active_radius": 6.5,
     "filter_buried": true
   },
   {
