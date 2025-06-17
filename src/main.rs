@@ -1,12 +1,5 @@
-mod air;
-mod input;
-mod interactor;
-mod sasa;
-mod structure;
-mod utils;
-use air::Air;
 use core::panic;
-use interactor::Interactor;
+use haddock_restraints::{Air, Interactor};
 use std::collections::HashMap;
 use std::{error::Error, vec};
 
@@ -183,7 +176,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// - `Air` struct and its methods for processing the interactors and generating the table.
 /// - Various methods on the `Interactor` struct for processing individual interactors.
 fn gen_tbl(input_file: &str, pml: &Option<String>) {
-    let mut interactors = input::read_json_file(input_file).unwrap();
+    let mut interactors = haddock_restraints::read_json_file(input_file).unwrap();
 
     interactors.iter_mut().for_each(|interactor| {
         if !interactor.structure().is_empty() {
@@ -228,7 +221,7 @@ fn gen_tbl(input_file: &str, pml: &Option<String>) {
 ///
 /// # Functionality
 ///
-/// 1. Loads the PDB file using the structure::load_pdb function.
+/// 1. Loads the PDB file using the haddock_restraints::load_pdb function.
 /// 2. Finds the closest residue pairs within the specified distance cutoff.
 /// 3. Creates Interactor instances for each residue pair.
 /// 4. Assigns chains, active/passive residues, and atoms to the interactors.
@@ -244,13 +237,13 @@ fn unambig_ti(
     cutoff: &f64,
     pml: &Option<String>,
 ) -> Result<String, Box<dyn Error>> {
-    let pdb = match structure::load_pdb(input_file) {
+    let pdb = match haddock_restraints::load_pdb(input_file) {
         Ok(pdb) => pdb,
         Err(e) => {
             panic!("Error opening PDB file: {:?}", e);
         }
     };
-    let pairs = structure::get_closest_residue_pairs(&pdb, *cutoff);
+    let pairs = haddock_restraints::get_closest_residue_pairs(&pdb, *cutoff);
 
     let mut interactors: Vec<Interactor> = Vec::new();
     let mut counter = 0;
@@ -327,7 +320,7 @@ fn unambig_ti(
 ///
 /// This function relies on several other modules and functions:
 /// - `pdbtbx` for opening and parsing PDB files.
-/// - `structure::get_true_interface` and `structure::get_chains_in_contact` for interface analysis.
+/// - `haddock_restraints::get_true_interface` and `haddock_restraints::get_chains_in_contact` for interface analysis.
 /// - `Interactor` struct for representing protein chains and their interactions.
 /// - `Air` struct for generating the AIR table.
 fn true_interface(
@@ -336,15 +329,15 @@ fn true_interface(
     pml: &Option<String>,
 ) -> Result<String, Box<dyn Error>> {
     // Read PDB file
-    let pdb = match structure::load_pdb(input_file) {
+    let pdb = match haddock_restraints::load_pdb(input_file) {
         Ok(pdb) => pdb,
         Err(e) => {
             panic!("Error opening PDB file: {:?}", e);
         }
     };
 
-    let true_interface = structure::get_true_interface(&pdb, *cutoff);
-    let chains_in_contact = structure::get_chains_in_contact(&pdb, *cutoff);
+    let true_interface = haddock_restraints::get_true_interface(&pdb, *cutoff);
+    let chains_in_contact = haddock_restraints::get_chains_in_contact(&pdb, *cutoff);
 
     // Sort the true_interface by chain id
     let mut true_interface: Vec<_> = true_interface.iter().collect();
@@ -435,13 +428,13 @@ fn true_interface(
 ///
 /// This function relies on several other modules and functions:
 /// - `pdbtbx` for opening and parsing PDB files.
-/// - `structure::find_bodies` for identifying separate bodies in the protein structure.
-/// - `structure::create_iter_body_gaps` for calculating gaps between bodies.
+/// - `haddock_restraints::find_bodies` for identifying separate bodies in the protein structure.
+/// - `haddock_restraints::create_iter_body_gaps` for calculating gaps between bodies.
 /// - `Interactor` struct for representing parts of the protein involved in restraints.
 /// - `Air` struct for generating the AIR table.
 fn restraint_bodies(input_file: &str, pml: &Option<String>) -> Result<String, Box<dyn Error>> {
     // Read PDB file
-    let pdb = match structure::load_pdb(input_file) {
+    let pdb = match haddock_restraints::load_pdb(input_file) {
         Ok(pdb) => pdb,
         Err(e) => {
             panic!("Error opening PDB file: {:?}", e);
@@ -449,17 +442,17 @@ fn restraint_bodies(input_file: &str, pml: &Option<String>) -> Result<String, Bo
     };
 
     // Find in-contiguous chains
-    let bodies = structure::find_bodies(&pdb);
-    let mut gaps = structure::create_iter_body_gaps(&bodies);
+    let bodies = haddock_restraints::find_bodies(&pdb);
+    let mut gaps = haddock_restraints::create_iter_body_gaps(&bodies);
 
     // Find same-chain ligands
-    let ligand_gaps = structure::gaps_around_ligand(&pdb);
+    let ligand_gaps = haddock_restraints::gaps_around_ligand(&pdb);
 
     // NOTE: One restraint per atom of the ligand might be too much, apply some filtering
     // - no duplicated atoms in the protein should be used
     // - select every-other pair
-    let filtered_gaps = structure::filter_unique_by_atom_j(ligand_gaps);
-    let every_other_gaps: Vec<structure::Gap> = filtered_gaps
+    let filtered_gaps = haddock_restraints::filter_unique_by_atom_j(ligand_gaps);
+    let every_other_gaps: Vec<haddock_restraints::Gap> = filtered_gaps
         .into_iter()
         .enumerate()
         .filter_map(|(idx, g)| {
@@ -561,16 +554,16 @@ fn restraint_bodies(input_file: &str, pml: &Option<String>) -> Result<String, Bo
 ///
 /// This function relies on several other modules and functions:
 /// - `pdbtbx` for opening and parsing PDB files.
-/// - `structure::get_true_interface` for identifying interface residues.
+/// - `haddock_restraints::get_true_interface` for identifying interface residues.
 fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
-    let pdb = match structure::load_pdb(input_file) {
+    let pdb = match haddock_restraints::load_pdb(input_file) {
         Ok(pdb) => pdb,
         Err(e) => {
             panic!("Error opening PDB file: {:?}", e);
         }
     };
 
-    let true_interface = structure::get_true_interface(&pdb, *cutoff);
+    let true_interface = haddock_restraints::get_true_interface(&pdb, *cutoff);
 
     for (chain_id, residues) in true_interface.iter() {
         let mut sorted_res = residues.iter().collect::<Vec<_>>();
@@ -589,7 +582,7 @@ fn generate_z_restraints(
     grid_size: &usize,
     grid_spacing: &f64,
 ) -> Result<(), Box<dyn Error>> {
-    let pdb = match structure::load_pdb(input_file) {
+    let pdb = match haddock_restraints::load_pdb(input_file) {
         Ok(pdb) => pdb,
         Err(e) => {
             panic!("Error opening PDB file: {:?}", e);
@@ -598,7 +591,7 @@ fn generate_z_restraints(
 
     // // DEVELOPMENT, move the pdb to the origin --------------------------------------------------
     // let mut debug_pdb = pdb.clone();
-    // structure::move_to_origin(&mut debug_pdb);
+    // haddock_restraints::move_to_origin(&mut debug_pdb);
     // let output_path = Path::new("input.pdb");
     // let file = File::create(output_path)?;
     // pdbtbx::save_pdb_raw(
@@ -611,20 +604,20 @@ fn generate_z_restraints(
     let atoms1: Vec<pdbtbx::Atom>;
     let atoms2: Vec<pdbtbx::Atom>;
 
-    let mut restraints: HashMap<usize, Vec<structure::Bead>> = HashMap::new();
+    let mut restraints: HashMap<usize, Vec<haddock_restraints::Bead>> = HashMap::new();
 
     if selections.len() >= 2 {
-        (atoms1, atoms2) = structure::find_furthest_selections(selections, &pdb);
+        (atoms1, atoms2) = haddock_restraints::find_furthest_selections(selections, &pdb);
     } else {
-        atoms1 = structure::get_atoms_from_resnumbers(&pdb, &selections[0]);
+        atoms1 = haddock_restraints::get_atoms_from_resnumbers(&pdb, &selections[0]);
         atoms2 = vec![
             pdbtbx::Atom::new(false, 1, "CA", 0.0, 0.0, 0.0, 1.0, 0.0, "C", 0)
                 .expect("Failed to create atom"),
         ];
     }
 
-    let center1 = structure::calculate_geometric_center(&atoms1);
-    let center2 = structure::calculate_geometric_center(&atoms2);
+    let center1 = haddock_restraints::calculate_geometric_center(&atoms1);
+    let center2 = haddock_restraints::calculate_geometric_center(&atoms2);
 
     // Project endpoints onto global Z-axis and center at origin
     let min_z = center1.z.min(center2.z);
@@ -632,8 +625,10 @@ fn generate_z_restraints(
     let half_length = (max_z - min_z) / 2.0;
 
     // Generate grids at both ends, perpendicular to global Z-axis
-    let grid_beads1 = structure::generate_grid_beads(-half_length, *grid_size, *grid_spacing);
-    let grid_beads2 = structure::generate_grid_beads(half_length, *grid_size, *grid_spacing);
+    let grid_beads1 =
+        haddock_restraints::generate_grid_beads(-half_length, *grid_size, *grid_spacing);
+    let grid_beads2 =
+        haddock_restraints::generate_grid_beads(half_length, *grid_size, *grid_spacing);
 
     restraints.insert(0, grid_beads1.clone());
     restraints.insert(1, grid_beads2.clone());
@@ -645,16 +640,17 @@ fn generate_z_restraints(
     // It can be that `selections` contains more than 2 selections, if that's the case, we need to place more grids in between
     if selections.len() > 2 {
         for (i, selection) in selections.iter().enumerate().skip(2) {
-            let atoms = structure::get_atoms_from_resnumbers(&pdb, selection);
-            let center = structure::calculate_geometric_center(&atoms);
-            let grid_beads = structure::generate_grid_beads(center.z, *grid_size, *grid_spacing);
+            let atoms = haddock_restraints::get_atoms_from_resnumbers(&pdb, selection);
+            let center = haddock_restraints::calculate_geometric_center(&atoms);
+            let grid_beads =
+                haddock_restraints::generate_grid_beads(center.z, *grid_size, *grid_spacing);
             restraints.insert(i, grid_beads.clone());
             all_beads.extend(grid_beads);
         }
     }
 
     // Write the beads to a PDB file
-    structure::write_beads_pdb(&all_beads, output_file)?;
+    haddock_restraints::write_beads_pdb(&all_beads, output_file)?;
 
     let mut interactors: Vec<Interactor> = Vec::new();
     let mut counter = 0;

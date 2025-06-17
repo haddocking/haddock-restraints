@@ -561,7 +561,7 @@ pub const REL_ASA: &[(&str, AsaValues)] = &[
 #[cfg(test)]
 mod test {
 
-    use crate::structure;
+    use crate::core::structure;
 
     use super::*;
 

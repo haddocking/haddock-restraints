@@ -1,5 +1,5 @@
-use crate::sasa;
-use crate::structure;
+use crate::core::sasa;
+use crate::core::structure;
 use core::panic;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -758,7 +758,7 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
 
-    use crate::interactor::{Interactor, PassiveResidues};
+    use crate::core::interactor::{Interactor, PassiveResidues};
 
     #[test]
     fn test_valid_interactor() {
