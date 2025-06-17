@@ -6,10 +6,11 @@
 [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F-green)](https://fair-software.eu)
 
 [![tests](https://github.com/haddocking/haddock-restraints/actions/workflows/test.yml/badge.svg)](https://github.com/haddocking/haddock-restraints/actions/workflows/test.yml)
+![docs.rs](https://img.shields.io/docsrs/haddock-restraints)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/cc008f968e394457ae63650cccfd27da)](https://app.codacy.com/gh/haddocking/haddock-restraints/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Crates.io Total Downloads](https://img.shields.io/crates/d/haddock-restraints)](https://crates.io/crates/haddock-restraints)
 
-A standalone command-line application to generate restraints to be used in HADDOCK.
+A standalone command-line application to generate restraints to be used in HADDOCK. 
 
 ## Commands
 
@@ -22,7 +23,10 @@ A standalone command-line application to generate restraints to be used in HADDO
 
 ## Usage
 
-Check [bonvinlab.org/haddock-restraints](https://bonvinlab.org/haddock-restraints) for a user guide.
+Check [bonvinlab.org/haddock-restraints](https://bonvinlab.org/haddock-restraints) for a **user guide** on how to use the code as a command-line application.
+
+Check [docs.rs/haddock-restraints](https://docs.rs/haddock-restraints/0.8.2/haddock_restraints/) for the **developer documentation**, and how to use it as a library in your code.
+
 
 ## Install
 
