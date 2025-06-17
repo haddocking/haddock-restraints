@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{interactor, utils};
+use crate::core::{interactor, utils};
 
 /// Represents the Air (Ambiguous Interaction Restraints) structure.
 ///
