@@ -200,14 +200,6 @@ pub fn neighbor_search(
 ///
 /// A `Vec<&Residue>` containing references to the residues whose serial numbers match those in the `target` vector.
 ///
-/// # Example
-///
-/// ```
-/// let pdb = pdbtbx::PDB::from_file("protein.pdb").unwrap();
-/// let target_serials = vec![1, 3, 5];
-/// let selected_residues = get_residues(&pdb, target_serials);
-/// ```
-///
 /// # Notes
 ///
 /// - This function performs a linear search through all residues in the PDB structure.
