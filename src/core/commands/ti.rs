@@ -16,18 +16,10 @@ use std::error::Error;
 /// A `Result<String, Box<dyn Error>>` which is Ok(String) if the function completes successfully, or an Error if something goes wrong.
 ///
 pub fn true_interface(
-    input_file: &str,
+    pdb: pdbtbx::PDB,
     cutoff: &f64,
     pml: &Option<String>,
 ) -> Result<String, Box<dyn Error>> {
-    // Read PDB file
-    let pdb = match load_pdb(input_file) {
-        Ok(pdb) => pdb,
-        Err(e) => {
-            panic!("Error opening PDB file: {:?}", e);
-        }
-    };
-
     let true_interface = get_true_interface(&pdb, *cutoff);
     let chains_in_contact = get_chains_in_contact(&pdb, *cutoff);
 
@@ -92,16 +84,10 @@ pub fn true_interface(
 /// A Result<String, Box<dyn Error>> containing the generated TBL (Topological Restraints List) if successful.
 ///
 pub fn unambig_ti(
-    input_file: &str,
+    pdb: pdbtbx::PDB,
     cutoff: &f64,
     pml: &Option<String>,
 ) -> Result<String, Box<dyn Error>> {
-    let pdb = match load_pdb(input_file) {
-        Ok(pdb) => pdb,
-        Err(e) => {
-            panic!("Error opening PDB file: {:?}", e);
-        }
-    };
     let pairs = get_closest_residue_pairs(&pdb, *cutoff);
 
     let mut interactors: Vec<Interactor> = Vec::new();
@@ -156,14 +142,7 @@ pub fn unambig_ti(
 /// A `Result<(), Box<dyn Error>>` which is Ok(()) if the function completes successfully,
 /// or an Error if something goes wrong.
 ///
-pub fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Error>> {
-    let pdb = match load_pdb(input_file) {
-        Ok(pdb) => pdb,
-        Err(e) => {
-            panic!("Error opening PDB file: {:?}", e);
-        }
-    };
-
+pub fn list_interface(pdb: pdbtbx::PDB, cutoff: &f64) -> Result<(), Box<dyn Error>> {
     let true_interface = get_true_interface(&pdb, *cutoff);
 
     for (chain_id, residues) in true_interface.iter() {
@@ -179,6 +158,7 @@ pub fn list_interface(input_file: &str, cutoff: &f64) -> Result<(), Box<dyn Erro
 mod tests {
 
     use super::*;
+    use std::io::{BufReader, Cursor};
 
     #[test]
     fn test_true_interface() {
@@ -212,8 +192,16 @@ assign ( resid 47 and segid B )
 
 "#;
 
+        let content = std::fs::read_to_string("tests/data/complex.pdb").unwrap();
+        let mut opts = pdbtbx::ReadOptions::new();
+        opts.set_format(pdbtbx::Format::Pdb)
+            .set_level(pdbtbx::StrictnessLevel::Loose);
+        let cursor = Cursor::new(content.into_bytes());
+        let reader = BufReader::new(cursor);
+        let (pdb, _) = opts.read_raw(reader).unwrap();
+
         let opt: Option<String> = None;
-        match true_interface("tests/data/complex.pdb", &3.0, &opt) {
+        match true_interface(pdb, &3.0, &opt) {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         };
@@ -250,8 +238,16 @@ assign ( resid 47 and segid B )
 
 "#;
 
+        let content = std::fs::read_to_string("tests/data/complex_BA.pdb").unwrap();
+        let mut opts = pdbtbx::ReadOptions::new();
+        opts.set_format(pdbtbx::Format::Pdb)
+            .set_level(pdbtbx::StrictnessLevel::Loose);
+        let cursor = Cursor::new(content.into_bytes());
+        let reader = BufReader::new(cursor);
+        let (pdb, _) = opts.read_raw(reader).unwrap();
+
         let opt: Option<String> = None;
-        match true_interface("tests/data/complex_BA.pdb", &3.0, &opt) {
+        match true_interface(pdb, &3.0, &opt) {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         };
@@ -259,10 +255,18 @@ assign ( resid 47 and segid B )
 
     #[test]
     fn test_unambigti() {
+        let content = std::fs::read_to_string("tests/data/two_res.pdb").unwrap();
+        let mut opts = pdbtbx::ReadOptions::new();
+        opts.set_format(pdbtbx::Format::Pdb)
+            .set_level(pdbtbx::StrictnessLevel::Loose);
+        let cursor = Cursor::new(content.into_bytes());
+        let reader = BufReader::new(cursor);
+        let (pdb, _) = opts.read_raw(reader).unwrap();
+
         let opt: Option<String> = None;
         let expected_tbl = "assign ( resid 2 and segid A and name CA ) ( resid 10 and segid B and name CA ) 9.1 2.0 0.0\n\n";
 
-        match unambig_ti("tests/data/two_res.pdb", &5.0, &opt) {
+        match unambig_ti(pdb, &5.0, &opt) {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         }

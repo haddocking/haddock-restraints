@@ -29,15 +29,7 @@ use crate::*;
 /// 5. Generates AIRs using the created interactors.
 /// 6. Prints the generated AIR table to stdout.
 ///
-pub fn restraint_bodies(input_file: &str, pml: &Option<String>) -> Result<String, Box<dyn Error>> {
-    // Read PDB file
-    let pdb = match load_pdb(input_file) {
-        Ok(pdb) => pdb,
-        Err(e) => {
-            panic!("Error opening PDB file: {:?}", e);
-        }
-    };
-
+pub fn restraint_bodies(pdb: pdbtbx::PDB, pml: &Option<String>) -> Result<String, Box<dyn Error>> {
     // Find in-contiguous chains
     let bodies = find_bodies(&pdb);
     let mut gaps = create_iter_body_gaps(&bodies);
@@ -105,7 +97,10 @@ pub fn restraint_bodies(input_file: &str, pml: &Option<String>) -> Result<String
 #[cfg(test)]
 mod tests {
 
+    use std::io::{BufReader, Cursor};
+
     use super::*;
+
     #[test]
     fn test_restraint_bodies() {
         let expected_tbl = r"assign ( resid 1 and segid A and name CA ) ( resid 4 and segid A and name CA ) 10.2 0.0 0.0
@@ -114,8 +109,15 @@ assign ( resid 2 and segid A and name CA ) ( resid 8 and segid A and name CA ) 1
 
 ";
 
-        let opt: Option<String> = None;
-        match restraint_bodies("tests/data/gaps.pdb", &opt) {
+        let content = std::fs::read_to_string("tests/data/gaps.pdb").unwrap();
+        let mut opts = pdbtbx::ReadOptions::new();
+        opts.set_format(pdbtbx::Format::Pdb)
+            .set_level(pdbtbx::StrictnessLevel::Loose);
+        let cursor = Cursor::new(content.into_bytes());
+        let reader = BufReader::new(cursor);
+        let (pdb, _) = opts.read_raw(reader).unwrap();
+
+        match restraint_bodies(pdb, &None) {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         }

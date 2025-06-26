@@ -3,19 +3,12 @@ use std::{collections::HashMap, error::Error};
 
 // TODO: Docstring
 pub fn generate_z_restraints(
-    input_file: &str,
+    pdb: pdbtbx::PDB,
     output_file: &str,
     selections: &[Vec<isize>],
     grid_size: &usize,
     grid_spacing: &f64,
 ) -> Result<(), Box<dyn Error>> {
-    let pdb = match load_pdb(input_file) {
-        Ok(pdb) => pdb,
-        Err(e) => {
-            panic!("Error opening PDB file: {:?}", e);
-        }
-    };
-
     // // DEVELOPMENT, move the pdb to the origin --------------------------------------------------
     // let mut debug_pdb = pdb.clone();
     // move_to_origin(&mut debug_pdb);
