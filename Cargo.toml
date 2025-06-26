@@ -1,7 +1,7 @@
 [package]
 name = "haddock-restraints"
-version = "0.8.2"
-edition = "2021"
+version = "0.8.3"
+edition = "2024"
 description = "Generate restraints to be used in HADDOCK"
 license = "MIT"
 repository = "https://github.com/haddocking/haddock-restraints"

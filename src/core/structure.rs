@@ -4,15 +4,15 @@ use std::collections::{HashMap, HashSet};
 use itertools::Itertools;
 use kd_tree::KdTree;
 use nalgebra::Vector3;
-use pdbtbx::{Atom, Element, PDB};
+use pdbtbx::{Atom, Element, PDB, ReadOptions};
 use pdbtbx::{PDBError, Residue};
+use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
-use rand::SeedableRng;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Cursor;
-use std::io::{Read, Write};
+use std::io::Write;
 
 #[derive(Clone)]
 pub struct Bead {
@@ -225,7 +225,7 @@ pub fn get_residues(pdb: &pdbtbx::PDB, target: Vec<isize>) -> Vec<&Residue> {
 ///
 /// * `pdb` - A reference to a `pdbtbx::PDB` structure representing the entire protein.
 /// * `cutoff` - A `f64` value specifying the maximum distance (in Angstroms) between atoms
-///              for residues to be considered part of the interface.
+///   for residues to be considered part of the interface.
 ///
 /// # Returns
 ///
@@ -288,7 +288,7 @@ pub fn get_true_interface(pdb: &pdbtbx::PDB, cutoff: f64) -> HashMap<String, Has
 ///
 /// * `pdb` - A reference to a `pdbtbx::PDB` structure representing the entire protein.
 /// * `cutoff` - A `f64` value specifying the maximum distance (in Angstroms) between atoms
-///              for chains to be considered in contact.
+///   for chains to be considered in contact.
 ///
 /// # Returns
 ///
@@ -460,7 +460,7 @@ pub fn find_bodies(pdb: &pdbtbx::PDB) -> HashMap<isize, Vec<(isize, &str, &pdbtb
 /// # Arguments
 ///
 /// * `bodies` - A reference to a `HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom)>>` representing
-///              the bodies of the protein structure, as returned by the `find_bodies` function.
+///   the bodies of the protein structure, as returned by the `find_bodies` function.
 ///
 /// # Returns
 ///
@@ -634,82 +634,82 @@ pub fn get_atoms_from_resnumbers(pdb: &PDB, selection: &[isize]) -> Vec<Atom> {
         .collect()
 }
 
-/// Loads a PDB (Protein Data Bank) file from a file path.
-///
-/// This function takes a PDB file content as a string, pads the lines,
-/// and then attempts to parse it into a PDB structure using the pdbtbx library.
+/// Loads a PDB structure from a file path
 ///
 /// # Arguments
-///
-/// * `input_pdb` - A string slice containing the file path of a PDB file.
+/// * `input_pdb` - Path to the PDB file
 ///
 /// # Returns
-///
-/// * `Result<PDB, Vec<PDBError>>` - On success, returns the parsed PDB structure.
-///   On failure, returns a vector of PDBError describing what went wrong during parsing.
-///
-/// # Notes
-///
-/// - This function uses `pdb_handler::pad_lines` to preprocess the input string.
-/// - The PDB is parsed with `pdbtbx::StrictnessLevel::Loose` to allow for some flexibility in the input format.
-/// - Any warnings generated during parsing are discarded. If you need to handle warnings,
-///   consider modifying the function to return them along with the PDB structure.
-#[allow(deprecated)]
+/// Result containing either the parsed PDB or a list of errors
 pub fn load_pdb(input_pdb: &str) -> Result<PDB, Vec<PDBError>> {
-    let processed_buf = process_pdb(input_pdb);
+    std::fs::read_to_string(input_pdb)
+        .map_err(|e| {
+            vec![PDBError::new(
+                pdbtbx::ErrorLevel::GeneralWarning,
+                "File read error",
+                format!("Failed to read file {}: {}", input_pdb, e),
+                pdbtbx::Context::None,
+            )]
+        })
+        .and_then(|content| process_pdb_contents(&content))
+}
 
-    let pdb = pdbtbx::open_pdb_raw(
-        processed_buf,
-        pdbtbx::Context::None,
-        pdbtbx::StrictnessLevel::Loose,
-    );
+/// Loads a PDB structure from string content
+///
+/// # Arguments
+/// * `content` - PDB file contents as a string
+///
+/// # Returns
+/// Result containing either the parsed PDB or a list of errors
+pub fn load_pdb_from_content(content: &str) -> Result<PDB, Vec<PDBError>> {
+    process_pdb_contents(content)
+}
 
-    match pdb {
+/// Processes raw PDB content by removing remarks and padding lines
+///
+/// # Arguments
+/// * `content` - Raw PDB content
+///
+/// # Returns
+/// Processed PDB content ready for parsing
+pub fn process_pdb_contents(pdb_content: &str) -> Result<PDB, Vec<PDBError>> {
+    let processed_content = process_pdb_string(pdb_content);
+
+    let mut opts = ReadOptions::new();
+    opts.set_format(pdbtbx::Format::Pdb)
+        .set_level(pdbtbx::StrictnessLevel::Loose);
+
+    let cursor = Cursor::new(processed_content.into_bytes());
+    let reader = BufReader::new(cursor);
+
+    match opts.read_raw(reader) {
         Ok((pdb, _)) => Ok(pdb),
         Err(e) => Err(e),
     }
 }
 
-/// Processes a PDB file by removing remarks and padding specific lines.
-///
-/// This function performs two operations on the input PDB file:
-/// 1. Removes all lines that start with "REMARK".
-/// 2. Pads lines starting with "ATOM" to a length of 80 characters.
+/// Processes raw PDB content by removing remarks and padding lines
 ///
 /// # Arguments
-///
-/// * `input_pdb` - A string slice that holds the path to the input PDB file.
+/// * `content` - Raw PDB content
 ///
 /// # Returns
-///
-/// A `BufReader<Cursor<Vec<u8>>>` containing the processed PDB content.
-///
-/// # Errors
-///
-/// This function will panic if:
-/// - The input file cannot be read.
-/// - A temporary file cannot be created or written to.
-/// - The `remove_remark` or `pad_lines` functions fail.
-///
-pub fn process_pdb(input_pdb: &str) -> BufReader<Cursor<Vec<u8>>> {
-    // Remove remarks from the PDB file
-    let no_remarks = pdb_handler::remove_remark(input_pdb);
+/// Processed PDB content ready for parsing
+fn process_pdb_string(content: &str) -> String {
+    let mut output = String::with_capacity(content.len());
 
-    // Convert the bufreader to a string
-    let mut content = String::new();
-    no_remarks
-        .into_inner()
-        .read_to_string(&mut content)
-        .unwrap();
+    // Process lines with single allocation
+    for line in content.lines() {
+        if !line.starts_with("REMARK") {
+            output.push_str(line);
+            if line.len() < 80 {
+                output.push_str(&" ".repeat(80 - line.len()));
+            }
+            output.push('\n');
+        }
+    }
 
-    let mut temp_file = tempfile::NamedTempFile::new().unwrap();
-
-    // Write the content to the temporary file
-    temp_file.write_all(content.as_bytes()).unwrap();
-    let temp_path = temp_file.path().to_str().unwrap();
-
-    // Pad lines before reading the PDB file
-    pdb_handler::pad_lines(temp_path)
+    output
 }
 
 /// Finds the closest residue pairs between different protein chains within a specified distance cutoff.
@@ -850,7 +850,8 @@ pub fn gaps_around_ligand(pdb: &PDB) -> Vec<Gap> {
 mod tests {
 
     use std::env;
-    use std::io::BufRead;
+
+    use tempfile::NamedTempFile;
 
     use super::*;
 
@@ -893,22 +894,128 @@ mod tests {
         let pdb = load_pdb(pdb_path.to_str().unwrap()).unwrap();
         assert_eq!(pdb.atoms().count(), 8);
     }
+    // Updated test helper function that works with older Rust versions
+    fn create_test_pdb(remarks: usize, atoms: usize) -> String {
+        let mut pdb = String::new();
+
+        // Add remarks
+        for i in 0..remarks {
+            pdb.push_str(&format!("REMARK {} Test remark\n", i));
+        }
+
+        // Add atoms (ATOM records)
+        for i in 0..atoms {
+            pdb.push_str(&format!(
+                "ATOM  {:>5}  N   ALA A{:>4}    {:>8}{:>8}{:>8}  1.00  0.00           N\n",
+                i + 1,
+                i + 1,
+                format!("{:.3}", i as f32),
+                format!("{:.3}", i as f32),
+                format!("{:.3}", i as f32)
+            ));
+        }
+
+        pdb
+    }
 
     #[test]
-    fn test_process_pdb() {
-        let processed_buf = process_pdb("tests/data/remark_short_lines.pdb");
+    fn test_process_pdb_string_removes_remarks() {
+        let input = "REMARK 1 Test\nATOM      1  N   ALA A   1       0.000   0.000   0.000\n";
+        let processed = process_pdb_string(input);
 
-        let lines: Vec<String> = processed_buf.lines().map(|l| l.unwrap()).collect();
-
-        // Check that there are no REMARK lines
-        assert!(lines.iter().all(|line| !line.starts_with("REMARK")));
-
-        // Check that all ATOM lines are 80 characters long
-        assert!(lines
-            .iter()
-            .filter(|line| line.starts_with("ATOM"))
-            .all(|line| line.len() == 80));
+        assert!(!processed.contains("REMARK"));
+        assert!(processed.contains("ATOM"));
     }
+
+    #[test]
+    fn test_process_pdb_string_pads_lines() {
+        let short_line = "ATOM      1  N   ALA A   1       0.000   0.000   0.000";
+        let processed = process_pdb_string(short_line);
+
+        // Check line is padded to 80 chars (including newline)
+        assert_eq!(processed.lines().next().unwrap().len(), 80);
+        assert_eq!(processed.chars().count(), 81); // 80 + newline
+    }
+
+    #[test]
+    fn test_process_pdb_string_preserves_long_lines() {
+        let long_line =
+            "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N  EXTRA";
+        let processed = process_pdb_string(long_line);
+
+        // Line should remain unchanged (except newline)
+        assert_eq!(processed.trim(), long_line);
+    }
+
+    #[test]
+    fn test_process_pdb_contents_valid_pdb() {
+        let pdb_content = create_test_pdb(3, 5);
+        let result = process_pdb_contents(&pdb_content);
+
+        assert!(result.is_ok());
+        let pdb = result.unwrap();
+        assert_eq!(pdb.atoms().count(), 5);
+    }
+
+    #[test]
+    fn test_process_pdb_contents_empty_input() {
+        let result = process_pdb_contents("");
+        assert!(result.is_err());
+
+        if let Err(errors) = result {
+            assert_eq!(errors.len(), 1);
+        }
+    }
+
+    #[test]
+    fn test_process_pdb_contents_invalid_pdb() {
+        let invalid_content = "This is not a PDB file\n";
+        let result = process_pdb_contents(invalid_content);
+
+        assert!(result.is_err());
+        if let Err(errors) = result {
+            assert!(!errors.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_process_pdb_string_empty_input() {
+        let processed = process_pdb_string("");
+        assert_eq!(processed, "");
+    }
+
+    #[test]
+    fn test_process_pdb_string_mixed_content() {
+        let input = "\
+REMARK 1 Test
+ATOM      1  N   ALA A   1       0.000   0.000   0.000
+REMARK 2 Another
+ATOM      2  N   ALA A   2       1.000   1.000   1.000
+";
+        let processed = process_pdb_string(input);
+        let lines: Vec<&str> = processed.lines().collect();
+
+        assert_eq!(lines.len(), 2); // Only ATOM lines should remain
+        assert!(lines[0].starts_with("ATOM"));
+        assert!(lines[1].starts_with("ATOM"));
+    }
+
+    #[test]
+    fn test_process_pdb_contents_with_real_file() {
+        // Create a temporary PDB file
+        let mut file = NamedTempFile::new().unwrap();
+        let pdb_content = create_test_pdb(2, 3);
+        write!(file, "{}", pdb_content).unwrap();
+
+        // Test with file content
+        let file_content = std::fs::read_to_string(file.path()).unwrap();
+        let result = process_pdb_contents(&file_content);
+
+        assert!(result.is_ok());
+        let pdb = result.unwrap();
+        assert_eq!(pdb.atoms().count(), 3);
+    }
+
     #[test]
     fn test_get_closest_residue_pairs() {
         let pdb = load_pdb("tests/data/two_res.pdb").unwrap();
@@ -1050,9 +1157,11 @@ mod tests {
         assert_eq!(filtered[1].atom_j, "D");
 
         // Verify the correct `atom_j` is retained
-        assert!(filtered
-            .iter()
-            .all(|gap| gap.atom_j != "B" || gap.atom_i == "C"));
+        assert!(
+            filtered
+                .iter()
+                .all(|gap| gap.atom_j != "B" || gap.atom_i == "C")
+        );
     }
 
     #[test]

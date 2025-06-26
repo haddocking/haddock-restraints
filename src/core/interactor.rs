@@ -505,7 +505,7 @@ impl Interactor {
     /// # Arguments
     ///
     /// * `target_res` - A vector of tuples, each containing a chain identifier (&str)
-    ///                  and a residue number (&i16) for the target residues.
+    ///   and a residue number (&i16) for the target residues.
     ///
     /// # Returns
     ///
@@ -902,8 +902,7 @@ mod tests {
             atom_str: &None,
         }]);
 
-        let block =
-            "assign ( resid 1 and segid A and (name CA or name CB) ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and (name CA or name CB) ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
@@ -1081,8 +1080,7 @@ mod tests {
             atom_str: &None,
         }]);
 
-        let block =
-            "assign ( resid 1 and segid A and attr z gt 42.00 ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and attr z gt 42.00 ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
