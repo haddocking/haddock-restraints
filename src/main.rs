@@ -514,7 +514,7 @@ fn restraint_bodies(input_file: &str, pml: &Option<String>) -> Result<String, Bo
 ///
 /// * `input_file` - A string slice that holds the path to the input PDB file.
 /// * `cutoff` - A reference to a f64 value specifying the distance cutoff (in Angstroms)
-///              for determining interface residues.
+///   for determining interface residues.
 ///
 /// # Returns
 ///

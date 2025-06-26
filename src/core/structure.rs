@@ -225,7 +225,7 @@ pub fn get_residues(pdb: &pdbtbx::PDB, target: Vec<isize>) -> Vec<&Residue> {
 ///
 /// * `pdb` - A reference to a `pdbtbx::PDB` structure representing the entire protein.
 /// * `cutoff` - A `f64` value specifying the maximum distance (in Angstroms) between atoms
-///              for residues to be considered part of the interface.
+///   for residues to be considered part of the interface.
 ///
 /// # Returns
 ///
@@ -288,7 +288,7 @@ pub fn get_true_interface(pdb: &pdbtbx::PDB, cutoff: f64) -> HashMap<String, Has
 ///
 /// * `pdb` - A reference to a `pdbtbx::PDB` structure representing the entire protein.
 /// * `cutoff` - A `f64` value specifying the maximum distance (in Angstroms) between atoms
-///              for chains to be considered in contact.
+///   for chains to be considered in contact.
 ///
 /// # Returns
 ///
@@ -460,7 +460,7 @@ pub fn find_bodies(pdb: &pdbtbx::PDB) -> HashMap<isize, Vec<(isize, &str, &pdbtb
 /// # Arguments
 ///
 /// * `bodies` - A reference to a `HashMap<isize, Vec<(isize, &str, &pdbtbx::Atom)>>` representing
-///              the bodies of the protein structure, as returned by the `find_bodies` function.
+///   the bodies of the protein structure, as returned by the `find_bodies` function.
 ///
 /// # Returns
 ///
