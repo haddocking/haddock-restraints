@@ -4,11 +4,11 @@ use std::collections::{HashMap, HashSet};
 use itertools::Itertools;
 use kd_tree::KdTree;
 use nalgebra::Vector3;
-use pdbtbx::{Atom, Element, ReadOptions, PDB};
+use pdbtbx::{Atom, Element, PDB, ReadOptions};
 use pdbtbx::{PDBError, Residue};
+use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
-use rand::SeedableRng;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Cursor;
@@ -851,6 +851,8 @@ mod tests {
 
     use std::env;
 
+    use tempfile::NamedTempFile;
+
     use super::*;
 
     #[test]
@@ -892,22 +894,128 @@ mod tests {
         let pdb = load_pdb(pdb_path.to_str().unwrap()).unwrap();
         assert_eq!(pdb.atoms().count(), 8);
     }
+    // Updated test helper function that works with older Rust versions
+    fn create_test_pdb(remarks: usize, atoms: usize) -> String {
+        let mut pdb = String::new();
+
+        // Add remarks
+        for i in 0..remarks {
+            pdb.push_str(&format!("REMARK {} Test remark\n", i));
+        }
+
+        // Add atoms (ATOM records)
+        for i in 0..atoms {
+            pdb.push_str(&format!(
+                "ATOM  {:>5}  N   ALA A{:>4}    {:>8}{:>8}{:>8}  1.00  0.00           N\n",
+                i + 1,
+                i + 1,
+                format!("{:.3}", i as f32),
+                format!("{:.3}", i as f32),
+                format!("{:.3}", i as f32)
+            ));
+        }
+
+        pdb
+    }
 
     #[test]
-    fn test_process_pdb() {
-        // let processed_buf = process_pdb("tests/data/remark_short_lines.pdb");
-        //
-        // let lines: Vec<String> = processed_buf.lines().map(|l| l.unwrap()).collect();
-        //
-        // // Check that there are no REMARK lines
-        // assert!(lines.iter().all(|line| !line.starts_with("REMARK")));
-        //
-        // // Check that all ATOM lines are 80 characters long
-        // assert!(lines
-        //     .iter()
-        //     .filter(|line| line.starts_with("ATOM"))
-        //     .all(|line| line.len() == 80));
+    fn test_process_pdb_string_removes_remarks() {
+        let input = "REMARK 1 Test\nATOM      1  N   ALA A   1       0.000   0.000   0.000\n";
+        let processed = process_pdb_string(input);
+
+        assert!(!processed.contains("REMARK"));
+        assert!(processed.contains("ATOM"));
     }
+
+    #[test]
+    fn test_process_pdb_string_pads_lines() {
+        let short_line = "ATOM      1  N   ALA A   1       0.000   0.000   0.000";
+        let processed = process_pdb_string(short_line);
+
+        // Check line is padded to 80 chars (including newline)
+        assert_eq!(processed.lines().next().unwrap().len(), 80);
+        assert_eq!(processed.chars().count(), 81); // 80 + newline
+    }
+
+    #[test]
+    fn test_process_pdb_string_preserves_long_lines() {
+        let long_line =
+            "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N  EXTRA";
+        let processed = process_pdb_string(long_line);
+
+        // Line should remain unchanged (except newline)
+        assert_eq!(processed.trim(), long_line);
+    }
+
+    #[test]
+    fn test_process_pdb_contents_valid_pdb() {
+        let pdb_content = create_test_pdb(3, 5);
+        let result = process_pdb_contents(&pdb_content);
+
+        assert!(result.is_ok());
+        let pdb = result.unwrap();
+        assert_eq!(pdb.atoms().count(), 5);
+    }
+
+    #[test]
+    fn test_process_pdb_contents_empty_input() {
+        let result = process_pdb_contents("");
+        assert!(result.is_err());
+
+        if let Err(errors) = result {
+            assert_eq!(errors.len(), 1);
+        }
+    }
+
+    #[test]
+    fn test_process_pdb_contents_invalid_pdb() {
+        let invalid_content = "This is not a PDB file\n";
+        let result = process_pdb_contents(invalid_content);
+
+        assert!(result.is_err());
+        if let Err(errors) = result {
+            assert!(!errors.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_process_pdb_string_empty_input() {
+        let processed = process_pdb_string("");
+        assert_eq!(processed, "");
+    }
+
+    #[test]
+    fn test_process_pdb_string_mixed_content() {
+        let input = "\
+REMARK 1 Test
+ATOM      1  N   ALA A   1       0.000   0.000   0.000
+REMARK 2 Another
+ATOM      2  N   ALA A   2       1.000   1.000   1.000
+";
+        let processed = process_pdb_string(input);
+        let lines: Vec<&str> = processed.lines().collect();
+
+        assert_eq!(lines.len(), 2); // Only ATOM lines should remain
+        assert!(lines[0].starts_with("ATOM"));
+        assert!(lines[1].starts_with("ATOM"));
+    }
+
+    #[test]
+    fn test_process_pdb_contents_with_real_file() {
+        // Create a temporary PDB file
+        let mut file = NamedTempFile::new().unwrap();
+        let pdb_content = create_test_pdb(2, 3);
+        write!(file, "{}", pdb_content).unwrap();
+
+        // Test with file content
+        let file_content = std::fs::read_to_string(file.path()).unwrap();
+        let result = process_pdb_contents(&file_content);
+
+        assert!(result.is_ok());
+        let pdb = result.unwrap();
+        assert_eq!(pdb.atoms().count(), 3);
+    }
+
     #[test]
     fn test_get_closest_residue_pairs() {
         let pdb = load_pdb("tests/data/two_res.pdb").unwrap();
@@ -1049,9 +1157,11 @@ mod tests {
         assert_eq!(filtered[1].atom_j, "D");
 
         // Verify the correct `atom_j` is retained
-        assert!(filtered
-            .iter()
-            .all(|gap| gap.atom_j != "B" || gap.atom_i == "C"));
+        assert!(
+            filtered
+                .iter()
+                .all(|gap| gap.atom_j != "B" || gap.atom_i == "C")
+        );
     }
 
     #[test]
