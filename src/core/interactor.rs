@@ -1,6 +1,8 @@
 use crate::core::sasa;
 use crate::core::structure;
-use core::panic;
+use crate::load_pdb;
+use pdbtbx::PDB;
+use pdbtbx::PDBError;
 use serde::Deserialize;
 use std::collections::HashSet;
 
@@ -43,6 +45,9 @@ pub struct Interactor {
 
     /// Optional path to the structure file.
     structure: Option<String>,
+
+    /// Optional PDB object.
+    pdb: Option<PDB>,
 
     /// Optional flag to determine if passive residues should be derived from active ones.
     passive_from_active: Option<bool>,
@@ -87,6 +92,7 @@ impl Interactor {
             passive: HashSet::new(),
             target: HashSet::new(),
             structure: None,
+            pdb: None,
             passive_from_active: None,
             passive_from_active_radius: None,
             surface_as_passive: None,
@@ -149,24 +155,17 @@ impl Interactor {
     /// - `structure::load_pdb`
     ///
     pub fn set_passive_from_active(&mut self) {
-        match structure::load_pdb(self.structure.clone().unwrap().as_str()) {
-            Ok(pdb) => {
-                let residues = structure::get_residues(
-                    &pdb,
-                    self.active.iter().map(|x| *x as isize).collect(),
-                );
+        if let Some(pdb) = &self.pdb {
+            let residues =
+                structure::get_residues(pdb, self.active.iter().map(|x| *x as isize).collect());
 
-                let search_cutoff = self.passive_from_active_radius.unwrap_or(6.5);
-                let neighbors = structure::neighbor_search(pdb.clone(), residues, search_cutoff);
+            let search_cutoff = self.passive_from_active_radius.unwrap_or(6.5);
+            let neighbors = structure::neighbor_search(pdb.clone(), residues, search_cutoff);
 
-                // Add these neighbors to the passive set
-                neighbors.iter().for_each(|x| {
-                    self.passive.insert(*x as i16);
-                });
-            }
-            Err(e) => {
-                panic!("Error opening PDB file: {:?}", e);
-            }
+            // Add these neighbors to the passive set
+            neighbors.iter().for_each(|x| {
+                self.passive.insert(*x as i16);
+            });
         }
     }
 
@@ -200,21 +199,16 @@ impl Interactor {
     /// The threshold for considering a residue as "surface" is set to 0.7 relative SASA.
     /// This value may need to be adjusted based on specific requirements.
     pub fn set_surface_as_passive(&mut self) {
-        match structure::load_pdb(self.structure.clone().unwrap().as_str()) {
-            Ok(pdb) => {
-                let sasa = sasa::calculate_sasa(pdb.clone());
+        if let Some(pdb) = &self.pdb {
+            let sasa = sasa::calculate_sasa(pdb.clone());
 
-                // Add these neighbors to the passive set
-                sasa.iter().for_each(|r| {
-                    // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
-                    if r.rel_sasa_total > 0.7 && r.chain == self.chain {
-                        self.passive.insert(r.residue.serial_number() as i16);
-                    }
-                });
-            }
-            Err(e) => {
-                panic!("Error opening PDB file: {:?}", e);
-            }
+            // Add these neighbors to the passive set
+            sasa.iter().for_each(|r| {
+                // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
+                if r.rel_sasa_total > 0.7 && r.chain == self.chain {
+                    self.passive.insert(r.residue.serial_number() as i16);
+                }
+            });
         }
     }
 
@@ -248,24 +242,19 @@ impl Interactor {
     /// The default threshold for considering a residue as "buried" is set to 0.7 relative SASA.
     /// This can be customized by setting the `filter_buried_cutoff` field of the `Interactor`.
     pub fn remove_buried_residues(&mut self) {
-        match structure::load_pdb(self.structure.clone().unwrap().as_str()) {
-            Ok(pdb) => {
-                let sasa = sasa::calculate_sasa(pdb.clone());
+        if let Some(pdb) = &self.pdb {
+            let sasa = sasa::calculate_sasa(pdb.clone());
 
-                let sasa_cutoff = self.filter_buried_cutoff.unwrap_or(0.7);
+            let sasa_cutoff = self.filter_buried_cutoff.unwrap_or(0.7);
 
-                sasa.iter().for_each(|r| {
-                    // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
-                    if r.rel_sasa_total < sasa_cutoff && r.chain == self.chain {
-                        // This residue is not accessible, remove it from the passive and active sets
-                        self.passive.remove(&(r.residue.serial_number() as i16));
-                        self.active.remove(&(r.residue.serial_number() as i16));
-                    }
-                });
-            }
-            Err(e) => {
-                panic!("Error opening PDB file: {:?}", e);
-            }
+            sasa.iter().for_each(|r| {
+                // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
+                if r.rel_sasa_total < sasa_cutoff && r.chain == self.chain {
+                    // This residue is not accessible, remove it from the passive and active sets
+                    self.passive.remove(&(r.residue.serial_number() as i16));
+                    self.active.remove(&(r.residue.serial_number() as i16));
+                }
+            });
         }
     }
 
@@ -369,6 +358,40 @@ impl Interactor {
     /// * `structure` - A string slice containing the path to the structure file.
     pub fn set_structure(&mut self, structure: &str) {
         self.structure = Some(structure.to_string());
+    }
+
+    /// Loads a PDB structure from the given path and stores it.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` on success, or `Vec<PDBError>` if loading failed.
+    pub fn load_structure(&mut self, structure_path: &str) -> Result<(), Vec<PDBError>> {
+        match load_pdb(structure_path) {
+            Ok(pdb) => {
+                self.structure = Some(structure_path.to_string());
+                self.pdb = Some(pdb);
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Returns a reference to the stored PDB structure, if any.
+    ///
+    /// # Returns
+    ///
+    /// Reference to an `Option<PDB>` containing the structure.
+    pub fn pdb(&self) -> &Option<PDB> {
+        &self.pdb
+    }
+
+    /// Stores a PDB structure in the Interactor.
+    ///
+    /// # Arguments
+    ///
+    /// * `pdb` - The PDB structure to store
+    pub fn set_pdb(&mut self, pdb: PDB) {
+        self.pdb = Some(pdb)
     }
 
     /// Sets the chain identifier for the Interactor.
@@ -793,7 +816,7 @@ mod tests {
     #[test]
     fn test_set_passive_from_active() {
         let mut interactor = Interactor::new(1);
-        interactor.set_structure("tests/data/complex.pdb");
+        interactor.load_structure("tests/data/complex.pdb").unwrap();
         interactor.set_active(vec![1]);
         interactor.passive_from_active_radius = Some(5.0);
         interactor.set_passive_from_active();
@@ -809,7 +832,7 @@ mod tests {
     #[test]
     fn test_set_surface_as_passive() {
         let mut interactor = Interactor::new(1);
-        interactor.set_structure("tests/data/complex.pdb");
+        interactor.load_structure("tests/data/complex.pdb").unwrap();
         interactor.set_chain("A");
         interactor.set_surface_as_passive();
 
@@ -829,7 +852,7 @@ mod tests {
     fn test_remove_buried_active_residues() {
         let mut interactor = Interactor::new(1);
 
-        interactor.set_structure("tests/data/complex.pdb");
+        interactor.load_structure("tests/data/complex.pdb").unwrap();
         interactor.set_chain("A");
         interactor.filter_buried = Some(true);
         interactor.filter_buried_cutoff = Some(0.7);
