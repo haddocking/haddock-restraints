@@ -23,7 +23,7 @@ A standalone command-line application to generate restraints to be used in HADDO
 
 ## Usage
 
-**(Coming soon!)** Go to _wenmr.science.uu.nl/haddock-restraints_ for a graphical user interface
+Go to [wenmr.science.uu.nl/haddock-restraints](https://wenmr.science.uu.nl/new/haddock-restraints) for a graphical user interface
 
 Check [bonvinlab.org/haddock-restraints](https://bonvinlab.org/haddock-restraints) for a **user guide** on how to use the code as a command-line application.
 
