@@ -1,6 +1,6 @@
 [package]
 name = "haddock-restraints"
-version = "0.8.4"
+version = "0.8.5"
 edition = "2024"
 description = "Generate restraints to be used in HADDOCK"
 license = "MIT"
