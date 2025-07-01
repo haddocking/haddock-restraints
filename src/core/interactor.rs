@@ -493,6 +493,15 @@ impl Interactor {
         self.filter_buried.unwrap_or(false)
     }
 
+    /// Sets whether passive residues should be derived from active residues.
+    ///
+    /// # Arguments
+    ///
+    /// * `cutoff` - A `f64` value representing the cutoff to filter buried residues.
+    pub fn set_filter_buried_cutoff(&mut self, cutoff: f64) {
+        self.filter_buried_cutoff = Some(cutoff);
+    }
+
     /// Adds a target interactor ID.
     ///
     /// # Arguments
