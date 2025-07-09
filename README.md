@@ -10,17 +10,6 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/cc008f968e394457ae63650cccfd27da)](https://app.codacy.com/gh/haddocking/haddock-restraints/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Crates.io Total Downloads](https://img.shields.io/crates/d/haddock-restraints)](https://crates.io/crates/haddock-restraints)
 
-A standalone command-line application to generate restraints to be used in HADDOCK. 
-
-## Commands
-
-- [`tbl`: Generates a TBL file](https://www.bonvinlab.org/haddock-restraints/tbl.html)
-- [`ti`: Generate true-interface restraints from a PDB file](https://www.bonvinlab.org/haddock-restraints/ti.html)
-- [`restraint`: Generate Unambiguous restraints to keep molecule (including heteroatoms) together during docking](https://www.bonvinlab.org/haddock-restraints/restraint.html)
-- [`interface`: List residues in the interface](https://www.bonvinlab.org/haddock-restraints/interface.html)
-- [`z`: Generate Z-restraints for a protein](https://www.bonvinlab.org/haddock-restraints/z.html)
-- [`unambig-ti`: Generate unambiguous true-interface restraints from a PDB file](https://www.bonvinlab.org/haddock-restraints/unambig-ti.html)
-
 ## Usage
 
 Go to [wenmr.science.uu.nl/haddock-restraints](https://wenmr.science.uu.nl/haddock-restraints) for a graphical user interface
@@ -31,6 +20,15 @@ Visit [docs.rs/haddock-restraints](https://docs.rs/haddock-restraints) for the *
 
 See [haddocking/haddock-restraints-wasm](https://github.com/haddocking/haddock-restraints-wasm) for the **web assembly** bindings.
 
+
+## Commands
+
+- [`tbl`: Generates a TBL file](https://www.bonvinlab.org/haddock-restraints/tbl.html)
+- [`ti`: Generate true-interface restraints from a PDB file](https://www.bonvinlab.org/haddock-restraints/ti.html)
+- [`restraint`: Generate Unambiguous restraints to keep molecule (including heteroatoms) together during docking](https://www.bonvinlab.org/haddock-restraints/restraint.html)
+- [`interface`: List residues in the interface](https://www.bonvinlab.org/haddock-restraints/interface.html)
+- [`z`: Generate Z-restraints for a protein](https://www.bonvinlab.org/haddock-restraints/z.html)
+- [`unambig-ti`: Generate unambiguous true-interface restraints from a PDB file](https://www.bonvinlab.org/haddock-restraints/unambig-ti.html)
 
 ## Install
 
