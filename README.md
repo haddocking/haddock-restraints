@@ -27,7 +27,7 @@ Go to [wenmr.science.uu.nl/haddock-restraints](https://wenmr.science.uu.nl/new/h
 
 Check [bonvinlab.org/haddock-restraints](https://bonvinlab.org/haddock-restraints) for a **user guide** on how to use the code as a command-line application.
 
-Check [docs.rs/haddock-restraints](https://docs.rs/haddock-restraints/0.8.2/haddock_restraints/) for the **developer documentation**, and how to use it as a library in your code.
+Check [docs.rs/haddock-restraints](https://docs.rs/haddock-restraints) for the **developer documentation**, and how to use it as a library in your code.
 
 
 ## Install
