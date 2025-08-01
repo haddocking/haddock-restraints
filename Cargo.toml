@@ -32,7 +32,7 @@ pdbtbx = "0.12"
 rand = "0.9"
 kd-tree = "0.6.1"
 clap = { version = "4.5", features = ["derive"] }
-nalgebra = "0.33"
+nalgebra = "0.34"
 itertools = "0.14"
 pdb-handler = ">=0.1"
 tempfile = "3.20"
