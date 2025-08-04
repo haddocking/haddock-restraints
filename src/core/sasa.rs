@@ -1,6 +1,5 @@
 use pdbtbx::{Atom, Residue};
-use rust_sasa::calculate_sasa as calculate_rust_sasa;
-use rust_sasa::{SASALevel, SASAResult};
+use rust_sasa::options::{AtomLevel, SASAOptions};
 use std::process;
 
 /// Represents an atom with additional solvent accessible surface area (SASA) information.
@@ -120,14 +119,16 @@ pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
     // ================================================================================
     // Calculate the SASA of each atom
 
-    let result = calculate_rust_sasa(&pdbtbx_struct, None, None, SASALevel::Atom).unwrap();
+    let options = SASAOptions::<AtomLevel>::new()
+        .with_probe_radius(1.4)
+        .with_n_points(100);
 
-    let atom_sasa: Vec<f64> = if let SASAResult::Atom(sasa_vec) = result {
-        // Convert Vec<f32> to Vec<f64>
-        sasa_vec.into_iter().map(|x| x as f64).collect()
-    } else {
-        panic!("Unexpected result type: expected Atom variant");
-    };
+    let atom_sasa = options
+        .process(&pdbtbx_struct)
+        .unwrap()
+        .into_iter()
+        .map(f64::from)
+        .collect::<Vec<f64>>();
 
     // Create a vector of ExtendedAtoms containing the SASA of each atom
     let mut extended_atoms: Vec<ExtendedAtom> = Vec::new();
