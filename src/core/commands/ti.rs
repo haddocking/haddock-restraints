@@ -40,6 +40,8 @@ pub fn true_interface(
         let mut interactor = Interactor::new(target_id as u16);
         interactor.set_chain(chain_id);
         interactor.set_active(residues.iter().map(|&residue| residue as i16).collect());
+        interactor.set_pdb(pdb.clone());
+        interactor.remove_buried_residues();
 
         // Assign the targets
         for (chain_i, chain_j) in chains_in_contact.iter() {
