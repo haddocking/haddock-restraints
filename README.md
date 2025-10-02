@@ -22,6 +22,9 @@ Visit [docs.rs/haddock-restraints](https://docs.rs/haddock-restraints) for the *
 
 See [haddocking/haddock-restraints-wasm](https://github.com/haddocking/haddock-restraints-wasm) for the **web assembly** bindings.
 
+❗ The command line contains all features, the bindings (python/wasm) might not be completed (yet) ❗
+
+❗ Prioritize using the command line! ❗
 
 ## Commands
 
