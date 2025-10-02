@@ -14,6 +14,8 @@
 
 Go to [wenmr.science.uu.nl/haddock-restraints](https://wenmr.science.uu.nl/haddock-restraints) for a graphical user interface
 
+Look at [haddocking/haddock-restraints-py](https://github.com/haddocking/haddock-restraints-py) to learn how to use it directly in your python scripts.
+
 Check [bonvinlab.org/haddock-restraints](https://bonvinlab.org/haddock-restraints) for a **user guide** on how to use the code as a command-line application.
 
 Visit [docs.rs/haddock-restraints](https://docs.rs/haddock-restraints) for the **developer documentation**, and how to use it as a library in your code.
