@@ -776,13 +776,13 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
         Some(atoms) if atoms.len() > 1 => {
             let atoms: String = atoms
                 .iter()
-                .map(|x| format!("name {}", x))
+                .map(|x| format!(r#"name "{}""#, x))
                 .collect::<Vec<String>>()
                 .join(" or ");
 
             format!(" and ({})", atoms)
         }
-        Some(atoms) if atoms.len() == 1 => format!(" and name {}", atoms[0]),
+        Some(atoms) if atoms.len() == 1 => format!(r#" and name "{}""#, atoms[0]),
         _ => "".to_string(),
     }
 }
