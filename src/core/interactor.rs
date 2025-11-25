@@ -778,15 +778,15 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
                 .iter()
                 .map(|x| {
                     if x.contains("-") || x.contains("+") {
-                        format!(r#"name "{}""#, x)
+                        format!(r#""{}""#, x)
                     } else {
-                        format!("name {}", x)
+                        format!("{}", x)
                     }
                 })
                 .collect::<Vec<String>>()
                 .join(" or ");
 
-            format!(" and ({})", atoms)
+            format!(" and name ({})", atoms)
         }
         Some(atoms) if atoms.len() == 1 => {
             if atoms[0].contains("-") || atoms[0].contains("+") {
@@ -806,8 +806,15 @@ mod tests {
 
     #[test]
     fn test_format_atom_string() {
+        let atom_str = format_atom_string(&Some(vec!["O".to_string()]));
+        let expected_atom_str = " and name O".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_format_atom_string_multiple() {
         let atom_str = format_atom_string(&Some(vec!["O".to_string(), "CA".to_string()]));
-        let expected_atom_str = " and (name O or name CA)".to_string();
+        let expected_atom_str = " and name (O or CA)".to_string();
         assert_eq!(atom_str, expected_atom_str)
     }
 
@@ -815,6 +822,20 @@ mod tests {
     fn test_format_atom_string_special_chars() {
         let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string()]));
         let expected_atom_str = " and name \"ZN+2\"".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_format_atom_string_multiple_special_chars() {
+        let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string(), "FE-3".to_string()]));
+        let expected_atom_str = " and name (\"ZN+2\" or \"FE-3\")".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_format_atom_string_multiple_hybrid_chars() {
+        let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string(), "CA".to_string()]));
+        let expected_atom_str = " and name (\"ZN+2\" or CA)".to_string();
         assert_eq!(atom_str, expected_atom_str)
     }
 
