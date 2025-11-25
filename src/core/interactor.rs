@@ -776,13 +776,25 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
         Some(atoms) if atoms.len() > 1 => {
             let atoms: String = atoms
                 .iter()
-                .map(|x| format!("name {}", x))
+                .map(|x| {
+                    if x.contains("-") || x.contains("+") {
+                        format!(r#""{}""#, x)
+                    } else {
+                        format!("{}", x)
+                    }
+                })
                 .collect::<Vec<String>>()
                 .join(" or ");
 
-            format!(" and ({})", atoms)
+            format!(" and name ({})", atoms)
         }
-        Some(atoms) if atoms.len() == 1 => format!(" and name {}", atoms[0]),
+        Some(atoms) if atoms.len() == 1 => {
+            if atoms[0].contains("-") || atoms[0].contains("+") {
+                format!(r#" and name "{}""#, atoms[0])
+            } else {
+                format!(" and name {}", atoms[0])
+            }
+        },
         _ => "".to_string(),
     }
 }
@@ -790,7 +802,42 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
 
-    use crate::core::interactor::{Interactor, PassiveResidues};
+    use crate::core::interactor::{Interactor, PassiveResidues, format_atom_string};
+
+    #[test]
+    fn test_format_atom_string() {
+        let atom_str = format_atom_string(&Some(vec!["O".to_string()]));
+        let expected_atom_str = " and name O".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_format_atom_string_multiple() {
+        let atom_str = format_atom_string(&Some(vec!["O".to_string(), "CA".to_string()]));
+        let expected_atom_str = " and name (O or CA)".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_format_atom_string_special_chars() {
+        let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string()]));
+        let expected_atom_str = " and name \"ZN+2\"".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_format_atom_string_multiple_special_chars() {
+        let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string(), "FE-3".to_string()]));
+        let expected_atom_str = " and name (\"ZN+2\" or \"FE-3\")".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_format_atom_string_multiple_hybrid_chars() {
+        let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string(), "CA".to_string()]));
+        let expected_atom_str = " and name (\"ZN+2\" or CA)".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
 
     #[test]
     fn test_valid_interactor() {
@@ -934,7 +981,7 @@ mod tests {
             atom_str: &None,
         }]);
 
-        let block = "assign ( resid 1 and segid A and (name CA or name CB) ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and name (CA or CB) ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
@@ -961,7 +1008,7 @@ mod tests {
             },
         ]);
 
-        let block = "assign ( resid 1 and segid A and (name CA or name CB) )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and name (CA or CB) )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
@@ -987,7 +1034,7 @@ mod tests {
             },
         ]);
 
-        let block = "assign ( resid 1 and segid A and (name CA or name CB) )\n       (\n        ( resid 2 and segid B and (name N or name C) )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and name (CA or CB) )\n       (\n        ( resid 2 and segid B and name (N or C) )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
