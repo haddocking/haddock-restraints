@@ -778,15 +778,15 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
                 .iter()
                 .map(|x| {
                     if x.contains("-") || x.contains("+") {
-                        format!(r#""{}""#, x)
+                        format!(r#"name "{}""#, x)
                     } else {
-                        x.to_string()
+                        format!("name {}", x)
                     }
                 })
                 .collect::<Vec<String>>()
                 .join(" or ");
 
-            format!(" and name ({})", atoms)
+            format!(" and ({})", atoms)
         }
         Some(atoms) if atoms.len() == 1 => {
             if atoms[0].contains("-") || atoms[0].contains("+") {
@@ -814,7 +814,7 @@ mod tests {
     #[test]
     fn test_format_atom_string_multiple() {
         let atom_str = format_atom_string(&Some(vec!["O".to_string(), "CA".to_string()]));
-        let expected_atom_str = " and name (O or CA)".to_string();
+        let expected_atom_str = " and (name O or name CA)".to_string();
         assert_eq!(atom_str, expected_atom_str)
     }
 
@@ -828,14 +828,14 @@ mod tests {
     #[test]
     fn test_format_atom_string_multiple_special_chars() {
         let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string(), "FE-3".to_string()]));
-        let expected_atom_str = " and name (\"ZN+2\" or \"FE-3\")".to_string();
+        let expected_atom_str = " and (name \"ZN+2\" or name \"FE-3\")".to_string();
         assert_eq!(atom_str, expected_atom_str)
     }
 
     #[test]
     fn test_format_atom_string_multiple_hybrid_chars() {
         let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string(), "CA".to_string()]));
-        let expected_atom_str = " and name (\"ZN+2\" or CA)".to_string();
+        let expected_atom_str = " and (name \"ZN+2\" or name CA)".to_string();
         assert_eq!(atom_str, expected_atom_str)
     }
 
@@ -981,7 +981,7 @@ mod tests {
             atom_str: &None,
         }]);
 
-        let block = "assign ( resid 1 and segid A and name (CA or CB) ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and (name CA or name CB) ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
@@ -1008,7 +1008,7 @@ mod tests {
             },
         ]);
 
-        let block = "assign ( resid 1 and segid A and name (CA or CB) )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and (name CA or name CB) )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
@@ -1034,7 +1034,7 @@ mod tests {
             },
         ]);
 
-        let block = "assign ( resid 1 and segid A and name (CA or CB) )\n       (\n        ( resid 2 and segid B and name (N or C) )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and (name CA or name CB) )\n       (\n        ( resid 2 and segid B and (name N or name C) )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
