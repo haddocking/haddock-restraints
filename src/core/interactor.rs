@@ -790,9 +790,9 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
         }
         Some(atoms) if atoms.len() == 1 => {
             if atoms[0].contains("-") || atoms[0].contains("+") {
-                format!(r#"name "{}""#, atoms[0])
+                format!(r#" and name "{}""#, atoms[0])
             } else {
-                format!("name {}", atoms[0])
+                format!(" and name {}", atoms[0])
             }
         },
         _ => "".to_string(),
