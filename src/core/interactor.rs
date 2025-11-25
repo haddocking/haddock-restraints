@@ -790,7 +790,7 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
 
-    use crate::core::interactor::{Interactor, PassiveResidues};
+    use crate::core::interactor::{Interactor, PassiveResidues, format_atom_string};
 
     #[test]
     fn test_valid_interactor() {
@@ -1115,5 +1115,19 @@ mod tests {
         let block = "assign ( resid 1 and segid A and attr z gt 42.00 ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_format_atom_string() {
+        let atom_str = format_atom_string(&Some(vec!["O".to_string(), "CA".to_string()]));
+        let expected_atom_str = " and (name O or name CA)".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_format_atom_string_special_chars() {
+        let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string()]));
+        let expected_atom_str = " and name \"ZN+2\"".to_string();
+        assert_eq!(atom_str, expected_atom_str)
     }
 }
