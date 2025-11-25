@@ -687,7 +687,7 @@ pub struct PassiveResidues<'a> {
 /// - A string slice representing the chain identifier
 /// - A reference to an i16 representing the residue number
 ///
-pub fn collect_residues(interactors: Vec<&Interactor>) -> Vec<PassiveResidues> {
+pub fn collect_residues(interactors: Vec<&Interactor>) -> Vec<PassiveResidues<'_>> {
     let mut resnums = Vec::new();
     for interactor in interactors {
         let active = interactor.active().iter().map(|&x| PassiveResidues {
@@ -780,7 +780,7 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
                     if x.contains("-") || x.contains("+") {
                         format!(r#""{}""#, x)
                     } else {
-                        format!("{}", x)
+                        x.to_string()
                     }
                 })
                 .collect::<Vec<String>>()
@@ -794,7 +794,7 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
             } else {
                 format!(" and name {}", atoms[0])
             }
-        },
+        }
         _ => "".to_string(),
     }
 }

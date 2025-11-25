@@ -500,8 +500,8 @@ pub fn create_iter_body_gaps(
     body_ids.sort();
     for (i, &body_id1) in body_ids.iter().enumerate() {
         for &body_id2 in body_ids[i + 1..].iter() {
-            if let (Some(atoms1), Some(atoms2)) = (bodies.get(&body_id1), bodies.get(&body_id2)) {
-                if atoms1.len() >= 2 && atoms2.len() >= 2 {
+            if let (Some(atoms1), Some(atoms2)) = (bodies.get(&body_id1), bodies.get(&body_id2))
+                && atoms1.len() >= 2 && atoms2.len() >= 2 {
                     let selected1: Vec<_> = atoms1.choose_multiple(&mut rng, 2).cloned().collect();
                     let selected2: Vec<_> = atoms2.choose_multiple(&mut rng, 2).cloned().collect();
 
@@ -516,7 +516,6 @@ pub fn create_iter_body_gaps(
                         });
                     }
                 }
-            }
         }
     }
 
@@ -769,8 +768,8 @@ pub fn get_closest_residue_pairs(pdb: &pdbtbx::PDB, cutoff: f64) -> Vec<Pair> {
                     }
                 }
 
-                if min_distance < cutoff {
-                    if let Some((res_j, res_i)) = closest_pair {
+                if min_distance < cutoff
+                    && let Some((res_j, res_i)) = closest_pair {
                         let ca_i = res_i.atoms().find(|atom| atom.name() == "CA").unwrap();
                         let ca_j = res_j.atoms().find(|atom| atom.name() == "CA").unwrap();
                         let ca_ca_dist = ca_i.distance(ca_j);
@@ -784,7 +783,6 @@ pub fn get_closest_residue_pairs(pdb: &pdbtbx::PDB, cutoff: f64) -> Vec<Pair> {
                             distance: ca_ca_dist,
                         });
                     }
-                }
             }
         }
     }
