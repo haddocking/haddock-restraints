@@ -777,7 +777,7 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
             let atoms: String = atoms
                 .iter()
                 .map(|x| {
-                    if x.contains("-") or x.contains("+") {
+                    if x.contains("-") || x.contains("+") {
                         format!(r#"name "{}""#, x)
                     } else {
                         format!("name {}", x)
