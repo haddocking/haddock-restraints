@@ -776,21 +776,43 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
         Some(atoms) if atoms.len() > 1 => {
             let atoms: String = atoms
                 .iter()
-                .map(|x| format!("name {}", x))
+                .map(|x| format!("name {}", enclose_atom(x)))
                 .collect::<Vec<String>>()
                 .join(" or ");
 
             format!(" and ({})", atoms)
         }
-        Some(atoms) if atoms.len() == 1 => format!(" and name {}", atoms[0]),
+        Some(atoms) if atoms.len() == 1 => format!(" and name {}", enclose_atom(&atoms[0])),
         _ => "".to_string(),
     }
+}
+
+/// Enclose atom in double quotes if it contains special characters such as `+` or `-`.
+///
+/// # Arguments
+///
+/// * `atom` - A &str representing an atom name.
+///
+/// # Returns
+///
+/// A String with the appropriate format, either in double quotes or not
+///
+pub fn enclose_atom(atom: &str) -> String {
+    let special_schars: Vec<char> = vec![
+        '+', '-', '(', ')', ':', '@', '=', '<', '>', '#', '*', '^', '~', '/',
+    ];
+    for p in special_schars {
+        if atom.contains(p) {
+            return format!("\"{}\"", atom);
+        }
+    }
+    atom.to_string()
 }
 
 #[cfg(test)]
 mod tests {
 
-    use crate::core::interactor::{Interactor, PassiveResidues, format_atom_string};
+    use crate::core::interactor::{Interactor, PassiveResidues, enclose_atom, format_atom_string};
 
     #[test]
     fn test_valid_interactor() {
@@ -916,6 +938,25 @@ mod tests {
         }]);
 
         let block = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+
+        assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_create_block_special_chars() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+        interactor.set_active_atoms(vec!["CA".to_string(), "ZN+2".to_string()]);
+
+        let observed = interactor.create_block(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+            atom_str: &None,
+        }]);
+
+        let block = "assign ( resid 1 and segid A and (name CA or name \"ZN+2\") ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
@@ -1129,5 +1170,17 @@ mod tests {
         let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string()]));
         let expected_atom_str = " and name \"ZN+2\"".to_string();
         assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_enclose_atom() {
+        let observed_atom = enclose_atom("CA");
+        assert_eq!(observed_atom, "CA".to_string())
+    }
+
+    #[test]
+    fn test_enclose_atom_with_special_chars() {
+        let observed_atom = enclose_atom("ZN+2");
+        assert_eq!(observed_atom, "\"ZN+2\"".to_string())
     }
 }
