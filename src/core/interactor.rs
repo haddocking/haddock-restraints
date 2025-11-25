@@ -788,7 +788,13 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
 
             format!(" and ({})", atoms)
         }
-        Some(atoms) if atoms.len() == 1 => format!(r#" and name "{}""#, atoms[0]),
+        Some(atoms) if atoms.len() == 1 => {
+            if atoms[0].contains("-") || atoms[0].contains("+") {
+                format!(r#"name "{}""#, atoms[0])
+            } else {
+                format!("name {}", atoms[0])
+            }
+        },
         _ => "".to_string(),
     }
 }
@@ -797,6 +803,20 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
 mod tests {
 
     use crate::core::interactor::{Interactor, PassiveResidues};
+
+    #[test]
+    fn test_format_atom_string() {
+        let atom_str = format_atom_string(&Some(vec!["O".to_string(), "CA".to_string()]));
+        let expected_atom_str = " and (name O or name CA)".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
+
+    #[test]
+    fn test_format_atom_string_special_chars() {
+        let atom_str = format_atom_string(&Some(vec!["ZN+2".to_string()]));
+        let expected_atom_str = " and name \"ZN+2\"".to_string();
+        assert_eq!(atom_str, expected_atom_str)
+    }
 
     #[test]
     fn test_valid_interactor() {
