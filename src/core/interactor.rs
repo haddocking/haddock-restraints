@@ -802,7 +802,7 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
 
-    use crate::core::interactor::{Interactor, PassiveResidues};
+    use crate::core::interactor::{Interactor, PassiveResidues, format_atom_string};
 
     #[test]
     fn test_format_atom_string() {
