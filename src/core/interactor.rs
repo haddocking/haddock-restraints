@@ -981,7 +981,7 @@ mod tests {
             atom_str: &None,
         }]);
 
-        let block = "assign ( resid 1 and segid A and (name CA or name CB) ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and name (CA or CB) ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
@@ -1008,7 +1008,7 @@ mod tests {
             },
         ]);
 
-        let block = "assign ( resid 1 and segid A and (name CA or name CB) )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and name (CA or CB) )\n       (\n        ( resid 2 and segid B )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
@@ -1034,7 +1034,7 @@ mod tests {
             },
         ]);
 
-        let block = "assign ( resid 1 and segid A and (name CA or name CB) )\n       (\n        ( resid 2 and segid B and (name N or name C) )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
+        let block = "assign ( resid 1 and segid A and name ( CA or CB) )\n       (\n        ( resid 2 and segid B and name (N or C) )\n     or\n        ( resid 3 and segid B )\n       ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
     }
