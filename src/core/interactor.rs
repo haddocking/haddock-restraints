@@ -802,6 +802,8 @@ pub fn format_atom_string(atoms: &Option<Vec<String>>) -> String {
 #[cfg(test)]
 mod tests {
 
+    use std::collections::HashSet;
+
     use crate::core::interactor::{Interactor, PassiveResidues, format_atom_string};
 
     #[test]
@@ -892,15 +894,31 @@ mod tests {
         interactor.set_chain("A");
         interactor.set_surface_as_passive();
 
-        let expected_passive = [
-            938, 965, 953, 944, 933, 958, 966, 972, 931, 936, 961, 929, 943, 954, 932, 945, 942,
-            957, 955, 947, 940, 941, 937, 964, 970, 930, 969, 968, 950, 952, 959, 971, 967, 956,
-            946, 960, 962, 935, 948, 951, 934, 939,
-        ];
+        // NOTE: here we use `rust-sasa`, which is equivalent to `freesasa`. however if you ever
+        // find that the observed passive residues in `interactor.passive()` are different from
+        // the expected list below, you should visually inspect if the residues should be exposed
+        // or not and also you can run freesasa as a tie-breaker `freesasa --format=rsa tests/data/complex.pdb`
+        // and then decide if the residue should be in the list below or not
+        let expected = HashSet::from([
+            929, 930, 931, 932, 933, 934, 935, 936, 938, 940, 941, 942, 943, 944, 945, 946, 947,
+            948, 950, 951, 952, 953, 954, 955, 956, 957, 958, 959, 960, 961, 962, 964, 965, 966,
+            967, 968, 969, 970, 971, 972,
+        ]);
+
+        let in_expected_and_not_in_observed: HashSet<_> =
+            expected.difference(interactor.passive()).collect();
+        let in_observed_and_not_in_expected: HashSet<_> =
+            interactor.passive().difference(&expected).collect();
 
         assert_eq!(
-            interactor.passive(),
-            &expected_passive.iter().cloned().collect()
+            in_expected_and_not_in_observed,
+            HashSet::new(),
+            "resnums that were expected were not observed"
+        );
+        assert_eq!(
+            in_observed_and_not_in_expected,
+            HashSet::new(),
+            "resnums observed were not expected"
         );
     }
 
