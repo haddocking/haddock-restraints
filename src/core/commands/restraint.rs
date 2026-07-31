@@ -29,7 +29,11 @@ use crate::*;
 /// 5. Generates AIRs using the created interactors.
 /// 6. Prints the generated AIR table to stdout.
 ///
-pub fn restraint_bodies(pdb: pdbtbx::PDB, pml: &Option<String>) -> Result<String, Box<dyn Error>> {
+pub fn restraint_bodies(
+    pdb: pdbtbx::PDB,
+    pml: &Option<String>,
+    pdb_path: &str,
+) -> Result<String, Box<dyn Error>> {
     // Find in-contiguous chains
     let bodies = find_bodies(&pdb);
     let mut gaps = create_iter_body_gaps(&bodies);
@@ -89,7 +93,7 @@ pub fn restraint_bodies(pdb: pdbtbx::PDB, pml: &Option<String>) -> Result<String
     println!("{}", tbl);
 
     if let Some(output_f) = pml {
-        air.gen_pml(output_f)
+        air.gen_pml(output_f, Some(pdb_path))
     };
     Ok(tbl)
 }
@@ -117,7 +121,7 @@ assign ( resid 2 and segid A and name CA ) ( resid 8 and segid A and name CA ) 1
         let reader = BufReader::new(cursor);
         let (pdb, _) = opts.read_raw(reader).unwrap();
 
-        match restraint_bodies(pdb, &None) {
+        match restraint_bodies(pdb, &None, "tests/data/gaps.pdb") {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         }
