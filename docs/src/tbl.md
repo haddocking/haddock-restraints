@@ -15,3 +15,5 @@ To run the `tbl` subcommand, you just need to provide the path to the configurat
 ```bash
 haddock-restraints tbl path/to/config.json > restraints.tbl
 ```
+
+You can also pass [`--pml`](./pml.md) to generate a PyMOL script to visualize the restraints network.

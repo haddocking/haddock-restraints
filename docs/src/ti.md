@@ -13,3 +13,5 @@ To run the `ti` subcommand, you just need to provide the path to the PDB file an
 ```bash
 haddock-restraints ti path/to/complex.pdb 5.0 > ti.tbl
 ```
+
+You can also pass [`--pml`](./pml.md) to generate a PyMOL script to visualize the restraints network.

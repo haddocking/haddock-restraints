@@ -17,3 +17,5 @@ PDB file and the cutoff distance. For example:
 ```bash
 haddock-restraints unambig-ti path/to/complex.pdb 5.0 > unambig.tbl
 ```
+
+You can also pass [`--pml`](./pml.md) to generate a PyMOL script to visualize the restraints network.

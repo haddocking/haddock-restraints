@@ -16,3 +16,5 @@ the PDB file. For example:
 ```bash
 haddock-restraints restraint path/to/complex.pdb > unambig.tbl
 ```
+
+You can also pass [`--pml`](./pml.md) to generate a PyMOL script to visualize the restraints network.

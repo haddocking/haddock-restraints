@@ -11,4 +11,5 @@
   - [`interface`](./interface.md)
   - [`z`](./z.md)
   - [`unambig-ti`](./unambig-ti.md)
+- [Visualizing restraints (`--pml`)](./pml.md)
 - [Development](./development.md)
