@@ -39,6 +39,32 @@ pub fn gen_tbl(input_file: &str, pml: &Option<String>) {
         }
     });
 
+    let structures: std::collections::HashSet<&str> = interactors
+        .iter()
+        .map(|interactor| interactor.structure())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    if pml.is_some() {
+        if structures.is_empty() {
+            eprintln!(
+                "## --pml requires at least one interactor in {} to set a `structure` ##",
+                input_file
+            );
+            std::process::exit(1);
+        }
+
+        if structures.len() > 1 {
+            eprintln!(
+                "## --pml requires all interactors to reference the same `structure`, found: {:?} ##",
+                structures
+            );
+            std::process::exit(1);
+        }
+    }
+
+    let structure = structures.into_iter().next().map(str::to_string);
+
     let air = Air::new(interactors);
 
     let tbl = air.gen_tbl().unwrap();
@@ -46,7 +72,7 @@ pub fn gen_tbl(input_file: &str, pml: &Option<String>) {
     println!("{}", tbl);
 
     if let Some(output_f) = pml {
-        air.gen_pml(output_f)
+        air.gen_pml(output_f, structure.as_deref())
     };
 }
 
