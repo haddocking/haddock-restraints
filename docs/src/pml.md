@@ -16,15 +16,22 @@ Pass `--pml` with an output filename to any of the supported subcommands. For ex
 haddock-restraints tbl path/to/config.json --pml network.pml > restraints.tbl
 ```
 
-Then load the structure and the script together in PyMOL:
+The generated script includes a `load` command for the structure it was built from, so it's
+self-contained — just open it directly in PyMOL:
+
+> **Note (`tbl` subcommand only)**: `--pml` needs to know which PDB the restraints refer to. For
+> `ti`, `unambig-ti`, and `restraint` this is just the PDB argument you already pass on the
+> command line. For `tbl`, it's read from the `structure` field in your
+> [configuration file](./configuration_file.md), at least one interactor must set it, and if
+> more than one interactor sets it, they must all point to the same file. Otherwise
+> `haddock-restraints` exits with an error rather than emitting a `.pml` with no visible network.
 
 ```bash
-pymol path/to/structure.pdb network.pml
+pymol network.pml
 ```
 
 or, from within an already open PyMOL session:
 
 ```
-load path/to/structure.pdb
 @network.pml
 ```
