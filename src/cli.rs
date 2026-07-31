@@ -2,7 +2,7 @@ use haddock_restraints::load_pdb;
 
 pub fn handle_ti(input: &str, cutoff: &f64, pml: &Option<String>) {
     let pdb = load_pdb(input).unwrap();
-    let _ = haddock_restraints::true_interface(pdb, cutoff, pml);
+    let _ = haddock_restraints::true_interface(pdb, cutoff, pml, input);
 }
 
 pub fn handle_gen_tbl(input: &str, pml: &Option<String>) {
@@ -10,11 +10,11 @@ pub fn handle_gen_tbl(input: &str, pml: &Option<String>) {
 }
 pub fn handle_unambig_ti(input: &str, cutoff: &f64, pml: &Option<String>) {
     let pdb = load_pdb(input).unwrap();
-    let _ = haddock_restraints::unambig_ti(pdb, cutoff, pml);
+    let _ = haddock_restraints::unambig_ti(pdb, cutoff, pml, input);
 }
 pub fn handle_restraint_bodies(input: &str, pml: &Option<String>) {
     let pdb = load_pdb(input).unwrap();
-    let _ = haddock_restraints::restraint_bodies(pdb, pml);
+    let _ = haddock_restraints::restraint_bodies(pdb, pml, input);
 }
 
 pub fn handle_list_interface(input: &str, cutoff: &f64) {

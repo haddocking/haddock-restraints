@@ -640,11 +640,14 @@ impl Interactor {
 
         for resnum in _active {
             let identifier = format!("{}-{}", resnum, self.chain);
-            let active_sel = format!("resi {} and name CA and chain {}", resnum, self.chain);
+            let active_sel = format!(
+                "resi {} and (name CA or name C1') and chain {}",
+                resnum, self.chain
+            );
 
             for passive_resnum in &passive_res {
                 let passive_sel = format!(
-                    "resi {} and name CA and chain {}",
+                    "resi {} and (name CA or name C1') and chain {}",
                     passive_resnum.res_number.unwrap(),
                     passive_resnum.chain_id
                 );
@@ -1180,5 +1183,23 @@ mod tests {
         let block = "assign ( resid 1 and segid A and attr z gt 42.00 ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
 
         assert_eq!(observed, block);
+    }
+
+    #[test]
+    fn test_make_pml_string() {
+        let mut interactor = Interactor::new(1);
+        interactor.set_active(vec![1]);
+        interactor.set_chain("A");
+
+        let observed = interactor.make_pml_string(vec![PassiveResidues {
+            chain_id: "B",
+            res_number: Some(2),
+            wildcard: "",
+            atom_str: &None,
+        }]);
+
+        let expected = "distance 1-A, (resi 1 and (name CA or name C1') and chain A), (resi 2 and (name CA or name C1') and chain B)\n";
+
+        assert_eq!(observed, expected);
     }
 }

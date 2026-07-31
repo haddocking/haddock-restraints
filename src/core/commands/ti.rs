@@ -19,6 +19,7 @@ pub fn true_interface(
     pdb: pdbtbx::PDB,
     cutoff: &f64,
     pml: &Option<String>,
+    pdb_path: &str,
 ) -> Result<String, Box<dyn Error>> {
     let true_interface = get_true_interface(&pdb, *cutoff);
     let chains_in_contact = get_chains_in_contact(&pdb, *cutoff);
@@ -65,7 +66,7 @@ pub fn true_interface(
     println!("{}", tbl);
 
     if let Some(output_f) = pml {
-        air.gen_pml(output_f)
+        air.gen_pml(output_f, Some(pdb_path))
     };
 
     Ok(tbl)
@@ -89,6 +90,7 @@ pub fn unambig_ti(
     pdb: pdbtbx::PDB,
     cutoff: &f64,
     pml: &Option<String>,
+    pdb_path: &str,
 ) -> Result<String, Box<dyn Error>> {
     let pairs = get_closest_residue_pairs(&pdb, *cutoff);
 
@@ -122,7 +124,7 @@ pub fn unambig_ti(
     println!("{}", tbl);
 
     if let Some(output_f) = pml {
-        air.gen_pml(output_f)
+        air.gen_pml(output_f, Some(pdb_path))
     };
 
     Ok(tbl)
@@ -203,7 +205,7 @@ assign ( resid 47 and segid B )
         let (pdb, _) = opts.read_raw(reader).unwrap();
 
         let opt: Option<String> = None;
-        match true_interface(pdb, &3.0, &opt) {
+        match true_interface(pdb, &3.0, &opt, "tests/data/complex.pdb") {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         };
@@ -249,7 +251,7 @@ assign ( resid 47 and segid B )
         let (pdb, _) = opts.read_raw(reader).unwrap();
 
         let opt: Option<String> = None;
-        match true_interface(pdb, &3.0, &opt) {
+        match true_interface(pdb, &3.0, &opt, "tests/data/complex_BA.pdb") {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         };
@@ -268,7 +270,7 @@ assign ( resid 47 and segid B )
         let opt: Option<String> = None;
         let expected_tbl = "assign ( resid 2 and segid A and name CA ) ( resid 10 and segid B and name CA ) 9.1 2.0 0.0\n\n";
 
-        match unambig_ti(pdb, &5.0, &opt) {
+        match unambig_ti(pdb, &5.0, &opt, "tests/data/two_res.pdb") {
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         }

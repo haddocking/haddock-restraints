@@ -79,8 +79,12 @@ impl Air {
         Ok(tbl)
     }
 
-    pub fn gen_pml(&self, output_f: &str) {
+    pub fn gen_pml(&self, output_f: &str, structure: Option<&str>) {
         let mut pml = String::new();
+
+        if let Some(structure) = structure {
+            pml.push_str(format!("load {}\n", structure).as_str());
+        }
 
         // General settings
         pml.push_str("set label_size, 0\n");

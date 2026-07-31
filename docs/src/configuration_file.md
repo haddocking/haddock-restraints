@@ -122,6 +122,7 @@ Optional fields are:
 
   - type: string
   - description: the PDB file that contains the structure of the interactor. If using relative paths, they should be relative to the configuration file
+  - note: required (on at least one interactor, and consistent across all interactors that set it) when using [`--pml`](./pml.md) with the `tbl` subcommand
 
 - `passive_from_active`
 
