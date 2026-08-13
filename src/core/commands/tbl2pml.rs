@@ -13,8 +13,8 @@ use crate::core::tbl_parser::parse_tbl;
 /// parsed `.tbl` blocks instead of an `Interactor`/`Air` graph, since pml
 /// rendering only ever needs `(resid, chain)` pairs.
 pub fn tbl2pml(tbl_path: &str, pdb_paths: &[String], output: &str) -> Result<(), String> {
-    let content =
-        std::fs::read_to_string(tbl_path).map_err(|e| format!("Could not read {}: {}", tbl_path, e))?;
+    let content = std::fs::read_to_string(tbl_path)
+        .map_err(|e| format!("Could not read {}: {}", tbl_path, e))?;
 
     let restraints = parse_tbl(&content)?;
 
@@ -74,7 +74,11 @@ mod tests {
     use super::*;
 
     fn write_test_pdb(path: &str) {
-        std::fs::write(path, "ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\n").unwrap();
+        std::fs::write(
+            path,
+            "ATOM      1  CA  ALA A   1       0.000   0.000   0.000  1.00  0.00           C\n",
+        )
+        .unwrap();
     }
 
     #[test]
@@ -129,7 +133,11 @@ mod tests {
 
     #[test]
     fn test_tbl2pml_missing_tbl_file_errors() {
-        let result = tbl2pml("does_not_exist.tbl", &["complex.pdb".to_string()], "out.pml");
+        let result = tbl2pml(
+            "does_not_exist.tbl",
+            &["complex.pdb".to_string()],
+            "out.pml",
+        );
         assert!(result.is_err());
     }
 
@@ -160,11 +168,7 @@ mod tests {
 
         // Directory doesn't exist, so the write should fail as `Err`
         // rather than panicking.
-        let result = tbl2pml(
-            tbl_path,
-            &[pdb_path.to_string()],
-            "nonexistent_dir/out.pml",
-        );
+        let result = tbl2pml(tbl_path, &[pdb_path.to_string()], "nonexistent_dir/out.pml");
         assert!(result.is_err());
 
         std::fs::remove_file(tbl_path).unwrap();

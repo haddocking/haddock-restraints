@@ -166,9 +166,9 @@ fn parse_selection(tokens: &[&str]) -> Result<Option<ResSelection>, String> {
     while i < tokens.len() {
         match tokens[i] {
             "resid" => {
-                let value = tokens
-                    .get(i + 1)
-                    .ok_or_else(|| "\"resid\" keyword with no residue number after it".to_string())?;
+                let value = tokens.get(i + 1).ok_or_else(|| {
+                    "\"resid\" keyword with no residue number after it".to_string()
+                })?;
                 resid = Some(
                     value
                         .parse::<i16>()
@@ -177,9 +177,9 @@ fn parse_selection(tokens: &[&str]) -> Result<Option<ResSelection>, String> {
                 i += 1;
             }
             "segid" => {
-                let value = tokens
-                    .get(i + 1)
-                    .ok_or_else(|| "\"segid\" keyword with no chain identifier after it".to_string())?;
+                let value = tokens.get(i + 1).ok_or_else(|| {
+                    "\"segid\" keyword with no chain identifier after it".to_string()
+                })?;
                 chain = Some((*value).to_string());
                 i += 1;
             }
@@ -188,7 +188,9 @@ fn parse_selection(tokens: &[&str]) -> Result<Option<ResSelection>, String> {
         i += 1;
     }
 
-    Ok(resid.zip(chain).map(|(resid, chain)| ResSelection { resid, chain }))
+    Ok(resid
+        .zip(chain)
+        .map(|(resid, chain)| ResSelection { resid, chain }))
 }
 
 #[cfg(test)]
@@ -273,7 +275,8 @@ mod tests {
     #[test]
     fn test_parse_atom_clause_before_segid() {
         // `and name CA` sits between `resid` and `segid` here.
-        let tbl = "assign ( resid 1 and name CA and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+        let tbl =
+            "assign ( resid 1 and name CA and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
         let restraints = parse_tbl(tbl).unwrap();
 
         assert_eq!(restraints[0].active.resid, 1);

@@ -8,7 +8,10 @@ use std::fmt::Write;
 /// commands. `C1'` is the nucleic-acid equivalent of `CA` (see commit
 /// b2763a1, "Fix `--pml` visualization for nucleic-acid structures").
 pub fn atom_selector(resnum: i16, chain: &str) -> String {
-    format!("resi {} and (name CA or name C1') and chain {}", resnum, chain)
+    format!(
+        "resi {} and (name CA or name C1') and chain {}",
+        resnum, chain
+    )
 }
 
 /// The PyMOL display settings shared by every generated `.pml` script.

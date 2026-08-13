@@ -61,7 +61,10 @@ enum Commands {
         )]
         pml: Option<String>,
     },
-    #[command(name = "tbl2pml", about = "Generate a PyMol (.pml) visualization directly from a .tbl restraints file and its PDB(s)")]
+    #[command(
+        name = "tbl2pml",
+        about = "Generate a PyMol (.pml) visualization from a .tbl file and its PDB(s)"
+    )]
     Tbl2Pml {
         #[arg(help = "Input .tbl restraints file")]
         tbl: String,
