@@ -27,6 +27,7 @@ pymol network.pml
 Like the rest of `--pml`, active residues are colored red, passive residues green, with dashed
 lines drawn between restrained residue pairs.
 
-> **Note**: `tbl2pml` does not validate that the `segid` values in the `.tbl` match chain IDs
-> present in the PDB(s) you pass — a mismatch simply renders nothing for that residue in PyMOL,
-> the same way an unresolved selection would in any other `.pml` script.
+> **Note**: `tbl2pml` checks that the PDB(s) you pass exist, but does not validate that the
+> `segid` values in the `.tbl` match chain IDs present in them — a mismatch simply renders
+> nothing for that residue in PyMOL, the same way an unresolved selection would in any other
+> `.pml` script.
