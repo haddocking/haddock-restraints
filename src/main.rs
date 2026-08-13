@@ -61,6 +61,21 @@ enum Commands {
         )]
         pml: Option<String>,
     },
+    #[command(name = "tbl2pml", about = "Generate a PyMol (.pml) visualization directly from a .tbl restraints file and its PDB(s)")]
+    Tbl2Pml {
+        #[arg(help = "Input .tbl restraints file")]
+        tbl: String,
+        #[arg(required = true, num_args = 1.., help = "One or more PDB files referenced by the .tbl")]
+        pdb: Vec<String>,
+        #[arg(
+            short,
+            long,
+            required = true,
+            help = "PyMol Script (.pml) output file",
+            value_name = "output.pml"
+        )]
+        output: String,
+    },
     #[command(about = "List residues in the interface")]
     Interface {
         #[arg(help = "PDB file")]
@@ -116,6 +131,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Commands::Restraint { input, pml } => {
             cli::handle_restraint_bodies(input, pml);
+        }
+        Commands::Tbl2Pml { tbl, pdb, output } => {
+            cli::handle_tbl2pml(tbl, pdb, output);
         }
         Commands::Interface { input, cutoff } => {
             cli::handle_list_interface(input, cutoff);
