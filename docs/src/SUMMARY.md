@@ -11,5 +11,6 @@
   - [`interface`](./interface.md)
   - [`z`](./z.md)
   - [`unambig-ti`](./unambig-ti.md)
+  - [`tbl2pml`](./tbl2pml.md)
 - [Visualizing restraints (`--pml`)](./pml.md)
 - [Development](./development.md)
