@@ -613,7 +613,7 @@ pub fn find_furthest_selections(selections: &[Vec<isize>], pdb: &PDB) -> (Vec<At
     let mut max_distance = 0.0;
     let mut atoms1 = Vec::new();
     let mut atoms2 = Vec::new();
-    for (i, j) in (0..selections.len()).tuple_combinations() {
+    for [i, j] in (0..selections.len()).array_combinations() {
         let distance = (sele[&i].1 - sele[&j].1).norm();
         if distance > max_distance {
             max_distance = distance;
