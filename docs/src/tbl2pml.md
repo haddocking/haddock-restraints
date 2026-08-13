@@ -1,7 +1,7 @@
-# `tbl2pml`
+# Generate a PyMOL visualization from a `.tbl` file
 
-Generates a PyMOL (`.pml`) visualization directly from an existing `.tbl` restraints file
-and the PDB(s) it refers to — without needing a `config.json`.
+`haddock-restraints` can generate a PyMOL (`.pml`) visualization directly from an existing
+`.tbl` restraints file and the PDB(s) it refers to — without needing a `config.json`.
 
 This is the standalone equivalent of the [`--pml`](./pml.md) option available on `tbl`, `ti`,
 `unambig-ti`, and `restraint`, for when you already have a `.tbl` file (handed to you, or from a
