@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::core::{interactor, utils};
+use crate::core::{interactor, pml, utils};
 
 /// Represents the Air (Ambiguous Interaction Restraints) structure.
 ///
@@ -86,10 +86,7 @@ impl Air {
             pml.push_str(format!("load {}\n", structure).as_str());
         }
 
-        // General settings
-        pml.push_str("set label_size, 0\n");
-        pml.push_str("set dash_gap, 0\n");
-        pml.push_str("set dash_color, yellow\n");
+        pml.push_str(&pml::header());
 
         let mut active: HashSet<(i16, &str)> = HashSet::new();
         let mut passive: HashSet<(i16, &str)> = HashSet::new();
@@ -116,13 +113,10 @@ impl Air {
             pml.push_str(&block);
         }
 
-        pml.push_str("color white\n");
-        passive.iter().for_each(|(resnum, chain)| {
-            pml.push_str(format!("color green, (resi {} and chain {})\n", resnum, chain).as_str())
-        });
-        active.iter().for_each(|(resnum, chain)| {
-            pml.push_str(format!("color red, (resi {} and chain {})\n", resnum, chain).as_str())
-        });
+        pml.push_str(&pml::color_footer(
+            passive.iter().map(|&(r, c)| (r, c)),
+            active.iter().map(|&(r, c)| (r, c)),
+        ));
 
         utils::write_string_to_file(&pml, output_f).expect("Could not write pml")
     }

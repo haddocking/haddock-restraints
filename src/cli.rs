@@ -17,6 +17,13 @@ pub fn handle_restraint_bodies(input: &str, pml: &Option<String>) {
     let _ = haddock_restraints::restraint_bodies(pdb, pml, input);
 }
 
+pub fn handle_tbl2pml(tbl: &str, pdb: &[String], output: &str) {
+    if let Err(e) = haddock_restraints::tbl2pml(tbl, pdb, output) {
+        eprintln!("Error generating pml from tbl: {}", e);
+        std::process::exit(1);
+    }
+}
+
 pub fn handle_list_interface(input: &str, cutoff: &f64) {
     let pdb = load_pdb(input).unwrap();
     let _ = haddock_restraints::list_interface(pdb, cutoff);

@@ -4,6 +4,10 @@ The `tbl`, `ti`, `unambig-ti`, and `restraint` subcommands all accept a `--pml` 
 addition to generating the restraints file, writes out a PyMOL script (`.pml`) to visualize the
 restraints network.
 
+If you already have a `.tbl` file and don't need to regenerate it, see the standalone
+[`tbl2pml`](./tbl2pml.md) subcommand, which builds the same kind of visualization directly from a
+`.tbl` and its PDB(s), without a `config.json`.
+
 The script colors **active** residues red, **passive** residues green, and draws dashed lines
 between the residues involved in each restraint, making it easy to inspect whether the network
 makes sense before starting a docking run.

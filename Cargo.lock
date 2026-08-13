@@ -278,7 +278,7 @@ checksum = "8fb167719045debebe9f532320accc7b5c993c5a3b813f5696a11d5ca7bdc57b"
 
 [[package]]
 name = "haddock-restraints"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "clap",
  "itertools",

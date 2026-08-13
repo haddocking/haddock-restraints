@@ -14,3 +14,5 @@ Each subcommand has its own set of options and arguments. The main subcommands a
 - [`z`: Generate restraints to keep the molecule aligned to the Z-axis](./z.md)
 
 - [`unambig-ti`: Generate unambiguous true-interface restraints](./unambig-ti.md)
+
+- [`tbl2pml`: Generate a PyMOL visualization from a `.tbl` file and its PDB(s)](./tbl2pml.md)

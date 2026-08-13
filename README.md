@@ -34,6 +34,7 @@ See [haddocking/haddock-restraints-wasm](https://github.com/haddocking/haddock-r
 - [`interface`: List residues in the interface](https://www.bonvinlab.org/haddock-restraints/interface.html)
 - [`z`: Generate Z-restraints for a protein](https://www.bonvinlab.org/haddock-restraints/z.html)
 - [`unambig-ti`: Generate unambiguous true-interface restraints from a PDB file](https://www.bonvinlab.org/haddock-restraints/unambig-ti.html)
+- [`tbl2pml`: Generate a PyMOL visualization from a `.tbl` file and its PDB(s)](https://www.bonvinlab.org/haddock-restraints/tbl2pml.html)
 
 ## Install
 
@@ -60,6 +61,7 @@ Commands:
   ti          Generate true-interface restraints from a PDB file
   unambig-ti  Generate unambiguous true-interface restraints from a PDB file
   restraint   Generate unambiguous restraints to keep molecules together during docking
+  tbl2pml     Generate a PyMol (.pml) visualization from a .tbl file and its PDB(s)
   interface   List residues in the interface
   z           Generate Z-restraints for a protein
   help        Print this message or the help of the given subcommand(s)
@@ -82,6 +84,7 @@ Options:
 - [x] List residues in the interface (interface command)
 - [x] Add Z-restraints to keep molecules aligned in the Z-axis (z command)
 - [x] Specify atom subsets
+- [x] Visualize restraints directly from a `.tbl` file, without a config.json (tbl2pml command)
 - [ ] Template based restraints
 - [ ] ~Generate random-restraints~ done via CNS
 
