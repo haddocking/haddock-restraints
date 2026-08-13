@@ -186,9 +186,7 @@ mod tests {
 
     #[test]
     fn test_parse_atom_clause_before_segid() {
-        // `and name CA` sits between `resid` and `segid` here, unlike the
-        // generator's own output which always puts `segid` right after
-        // `resid`. Real hand-written .tbl files use both orderings.
+        // `and name CA` sits between `resid` and `segid` here.
         let tbl = "assign ( resid 1 and name CA and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
         let restraints = parse_tbl(tbl).unwrap();
 

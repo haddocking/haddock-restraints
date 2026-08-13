@@ -105,9 +105,8 @@ mod tests {
         let tbl_path = "test_tbl2pml_unwritable_input.tbl";
         std::fs::write(tbl_path, tbl_content).unwrap();
 
-        // Directory doesn't exist, so the write must fail — and, unlike
-        // `utils::write_string_to_file`, must report that as `Err` rather
-        // than panicking.
+        // Directory doesn't exist, so the write should fail as `Err`
+        // rather than panicking.
         let result = tbl2pml(
             tbl_path,
             &["complex.pdb".to_string()],
