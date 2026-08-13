@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use crate::core::tbl_parser::parse_tbl;
-use crate::core::utils;
 
 /// Generates a PyMOL (`.pml`) visualization directly from a `.tbl` restraints
 /// file and the PDB(s) it refers to — without needing a `config.json`.
@@ -63,7 +62,7 @@ pub fn tbl2pml(tbl_path: &str, pdb_paths: &[String], output: &str) -> Result<(),
         pml.push_str(format!("color red, (resi {} and chain {})\n", resnum, chain).as_str())
     });
 
-    utils::write_string_to_file(&pml, output).map_err(|e| format!("Could not write {}: {}", output, e))
+    std::fs::write(output, &pml).map_err(|e| format!("Could not write {}: {}", output, e))
 }
 
 #[cfg(test)]
@@ -98,5 +97,24 @@ mod tests {
     fn test_tbl2pml_missing_tbl_file_errors() {
         let result = tbl2pml("does_not_exist.tbl", &["complex.pdb".to_string()], "out.pml");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tbl2pml_unwritable_output_errors_without_panicking() {
+        let tbl_content = "assign ( resid 1 and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+        let tbl_path = "test_tbl2pml_unwritable_input.tbl";
+        std::fs::write(tbl_path, tbl_content).unwrap();
+
+        // Directory doesn't exist, so the write must fail — and, unlike
+        // `utils::write_string_to_file`, must report that as `Err` rather
+        // than panicking.
+        let result = tbl2pml(
+            tbl_path,
+            &["complex.pdb".to_string()],
+            "nonexistent_dir/out.pml",
+        );
+        assert!(result.is_err());
+
+        std::fs::remove_file(tbl_path).unwrap();
     }
 }

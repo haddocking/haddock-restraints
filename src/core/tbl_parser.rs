@@ -67,23 +67,37 @@ fn strip_comments(content: &str) -> String {
         .join("\n")
 }
 
-/// Extracts every `resid <N> and segid <chain>` selection found in `chunk`,
-/// in source order, ignoring surrounding parens, `or`, and any trailing
-/// atom/attr clauses.
+/// Extracts every `resid <N> ... segid <chain>` selection found in `chunk`,
+/// in source order. `resid` and `segid` need not be adjacent — any clauses
+/// in between (`and name CA`, `and attr z gt 42.00`, ...) are skipped over —
+/// and parens don't need surrounding whitespace (`(resid` / `A)` both work).
 fn extract_selections(chunk: &str) -> Vec<ResSelection> {
-    let tokens: Vec<&str> = chunk.split_whitespace().collect();
+    // Give every paren its own token, regardless of whether the source had
+    // whitespace around it, so `(resid` doesn't hide the `resid` keyword.
+    let normalized = chunk.replace('(', " ( ").replace(')', " ) ");
+    let tokens: Vec<&str> = normalized.split_whitespace().collect();
     let mut selections = Vec::new();
 
     let mut i = 0;
     while i < tokens.len() {
         if tokens[i] == "resid"
-            && i + 4 < tokens.len()
-            && tokens[i + 2] == "and"
-            && tokens[i + 3] == "segid"
-            && let Ok(resid) = tokens[i + 1].parse::<i16>()
+            && let Some(resid) = tokens.get(i + 1).and_then(|t| t.parse::<i16>().ok())
         {
-            let chain = tokens[i + 4].trim_end_matches(')').to_string();
-            selections.push(ResSelection { resid, chain });
+            // Scan ahead for this selection's `segid`, skipping over any
+            // intervening clauses. Stop at the next `resid`/`)` so we
+            // never borrow the chain from a different selection.
+            let mut j = i + 2;
+            while j < tokens.len() && tokens[j] != "segid" && tokens[j] != "resid" && tokens[j] != ")" {
+                j += 1;
+            }
+            if tokens.get(j) == Some(&"segid")
+                && let Some(chain) = tokens.get(j + 1)
+            {
+                selections.push(ResSelection {
+                    resid,
+                    chain: chain.to_string(),
+                });
+            }
         }
         i += 1;
     }
@@ -168,6 +182,36 @@ mod tests {
         let restraints = parse_tbl(tbl).unwrap();
 
         assert_eq!(restraints[0].active.resid, 1);
+    }
+
+    #[test]
+    fn test_parse_atom_clause_before_segid() {
+        // `and name CA` sits between `resid` and `segid` here, unlike the
+        // generator's own output which always puts `segid` right after
+        // `resid`. Real hand-written .tbl files use both orderings.
+        let tbl = "assign ( resid 1 and name CA and segid A ) ( resid 2 and segid B ) 2.0 2.0 0.0\n\n";
+        let restraints = parse_tbl(tbl).unwrap();
+
+        assert_eq!(restraints[0].active.resid, 1);
+        assert_eq!(restraints[0].active.chain, "A");
+    }
+
+    #[test]
+    fn test_extract_selections_no_surrounding_whitespace() {
+        let selections = extract_selections("(resid 1 and segid A)(resid 2 and segid B)");
+        assert_eq!(
+            selections,
+            vec![
+                ResSelection {
+                    resid: 1,
+                    chain: "A".to_string()
+                },
+                ResSelection {
+                    resid: 2,
+                    chain: "B".to_string()
+                },
+            ]
+        );
     }
 
     #[test]
