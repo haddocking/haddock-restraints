@@ -1,3 +1,4 @@
+use crate::core::pml;
 use crate::core::sasa;
 use crate::core::structure;
 use crate::load_pdb;
@@ -640,17 +641,11 @@ impl Interactor {
 
         for resnum in _active {
             let identifier = format!("{}-{}", resnum, self.chain);
-            let active_sel = format!(
-                "resi {} and (name CA or name C1') and chain {}",
-                resnum, self.chain
-            );
+            let active_sel = pml::atom_selector(resnum, &self.chain);
 
             for passive_resnum in &passive_res {
-                let passive_sel = format!(
-                    "resi {} and (name CA or name C1') and chain {}",
-                    passive_resnum.res_number.unwrap(),
-                    passive_resnum.chain_id
-                );
+                let passive_sel =
+                    pml::atom_selector(passive_resnum.res_number.unwrap(), passive_resnum.chain_id);
 
                 pml.push_str(
                     format!(
