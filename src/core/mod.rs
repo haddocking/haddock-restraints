@@ -4,4 +4,5 @@ pub mod input;
 pub mod interactor;
 pub mod sasa;
 pub mod structure;
+pub mod tbl_parser;
 pub mod utils;
