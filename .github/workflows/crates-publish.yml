@@ -1,0 +1,40 @@
+name: publish crate to crates.io
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      # Fail early if the release tag (vX.Y.Z) does not match the version in Cargo.toml
+      - name: Check tag matches Cargo.toml version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          CRATE_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          if [ "${TAG#v}" != "$CRATE_VERSION" ]; then
+            echo "Tag $TAG does not match Cargo.toml version $CRATE_VERSION"
+            exit 1
+          fi
+
+      - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked
