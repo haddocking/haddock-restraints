@@ -88,7 +88,9 @@ const NACCESS_CONFIG: &str = include_str!("naccess.config");
 
 /// Parses `NACCESS_CONFIG` into the radius of each (residue, atom); residue `ANY` applies to all
 fn naccess_radii() -> HashMap<(&'static str, &'static str), f64> {
-    let (types, atoms) = NACCESS_CONFIG.split_once("atoms:").unwrap();
+    let (types, atoms) = NACCESS_CONFIG
+        .split_once("atoms:")
+        .expect("naccess.config has no `atoms:` section");
     let type_radius: HashMap<&str, f64> = types
         .lines()
         .filter_map(
@@ -638,6 +640,9 @@ mod test {
 
     #[test]
     fn test_calculate_sasa_modified_residue() {
+        // NEP CG is of type C_CAR in naccess.config
+        assert_eq!(naccess_radii()[&("NEP", "CG")], 1.76);
+
         let mut pdb = structure::load_pdb("tests/data/complex.pdb").unwrap();
         pdb.conformers_mut()
             .find(|c| c.name() == "HIS")
