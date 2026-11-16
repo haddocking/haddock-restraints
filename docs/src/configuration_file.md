@@ -45,7 +45,7 @@ A minimal configuration file would look like this:
 
 - `structure`: the PDB file that contains the structure of the interactor
 - `passive_from_active`: if true, the passive residues are defined based on the active residues (_requires structure_)
-- `passive_from_active_cutoff`: radius used to search for passive residues around the active (requires structure)
+- `passive_from_active_radius`: radius (Å) used to search for passive residues around the active, default = 6.5 (_requires structure_)
 - `surface_as_passive`: if true, the surface residues (main-chain or side-chain relative accessibility >= 0.15) are passive (_requires structure_)
 - `filter_buried`: if true, the buried residues are removed from the active and passive residues (_requires structure_)
 - `filter_buried_cutoff`: the cutoff to consider a residue as buried (relative SASA of main chain and side chain, 0-1), default = 0.15 (_requires structure_)
