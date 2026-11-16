@@ -504,6 +504,15 @@ impl Interactor {
         self.filter_buried_cutoff = Some(cutoff);
     }
 
+    /// Sets the radius used by `set_passive_from_active` (default: 6.5 Å).
+    ///
+    /// # Arguments
+    ///
+    /// * `radius` - A `f64` value representing the radius in Å.
+    pub fn set_passive_from_active_radius(&mut self, radius: f64) {
+        self.passive_from_active_radius = Some(radius);
+    }
+
     /// Adds a target interactor ID.
     ///
     /// # Arguments
@@ -875,7 +884,7 @@ mod tests {
         let mut interactor = Interactor::new(1);
         interactor.load_structure("tests/data/complex.pdb").unwrap();
         interactor.set_active(vec![1]);
-        interactor.passive_from_active_radius = Some(5.0);
+        interactor.set_passive_from_active_radius(5.0);
         interactor.set_passive_from_active();
 
         let expected_passive = [16, 15, 18, 3, 19, 61, 56, 17, 2, 62, 63];
