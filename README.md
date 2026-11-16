@@ -20,7 +20,7 @@ Check [bonvinlab.org/haddock-restraints](https://bonvinlab.org/haddock-restraint
 
 Visit [docs.rs/haddock-restraints](https://docs.rs/haddock-restraints) for the **developer documentation**, and how to use it as a library in your code.
 
-See [haddocking/haddock-restraints-wasm](https://github.com/haddocking/haddock-restraints-wasm) for the **web assembly** bindings.
+See [haddocking/csbportal (`frontend/wasm`)](https://github.com/haddocking/csbportal/tree/main/frontend/wasm) for the **web assembly** bindings.
 
 ❗ The command line contains all features, the bindings (python/wasm) might not be completed (yet) ❗
 
