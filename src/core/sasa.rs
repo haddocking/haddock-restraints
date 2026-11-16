@@ -1,5 +1,6 @@
-use pdbtbx::{Atom, Residue};
+use pdbtbx::{Atom, Element, Residue};
 use rust_sasa::options::{AtomLevel, SASAOptions};
+use std::collections::HashMap;
 use std::process;
 
 /// Represents an atom with additional solvent accessible surface area (SASA) information.
@@ -82,6 +83,36 @@ impl ExtendedRes {
     }
 }
 
+/// Atom radii of NACCESS, from HADDOCK3 (`src/haddock/clis/restraints/naccess.config`)
+const NACCESS_CONFIG: &str = include_str!("naccess.config");
+
+/// Parses `NACCESS_CONFIG` into the radius of each (residue, atom); residue `ANY` applies to all
+fn naccess_radii() -> HashMap<(&'static str, &'static str), f64> {
+    let (types, atoms) = NACCESS_CONFIG
+        .split_once("atoms:")
+        .expect("naccess.config has no `atoms:` section");
+    let type_radius: HashMap<&str, f64> = types
+        .lines()
+        .filter_map(
+            |line| match line.split_whitespace().collect::<Vec<_>>()[..] {
+                [name, radius, _] => Some((name, radius.parse().ok()?)),
+                _ => None,
+            },
+        )
+        .collect();
+    atoms
+        .lines()
+        .filter_map(
+            |line| match line.split_whitespace().collect::<Vec<_>>()[..] {
+                [residue, atom, atom_type, ..] if !residue.starts_with('#') => {
+                    Some(((residue, atom), *type_radius.get(atom_type)?))
+                }
+                _ => None,
+            },
+        )
+        .collect()
+}
+
 /// Calculates the Solvent Accessible Surface Area (SASA) for a given PDB structure.
 ///
 /// This function performs SASA calculations for each atom in the structure and aggregates
@@ -119,9 +150,39 @@ pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
     // ================================================================================
     // Calculate the SASA of each atom
 
+    // rust-sasa skips hydrogens and hetero atoms, remove them so its values match the atoms.
+    // Without an element column, pdbtbx guesses e.g. Hg for the HG hydrogen, so in the remaining
+    // (ATOM) records also take names starting with H, or a digit, as hydrogens.
+    pdbtbx_struct.remove_atoms_by(|atom| {
+        atom.element() == Some(&Element::H)
+            || atom.hetero()
+            || atom
+                .name()
+                .starts_with(|c: char| c == 'H' || c.is_ascii_digit())
+    });
+    pdbtbx_struct.remove_empty();
+
+    // Use the NACCESS radii of HADDOCK3, which include its modified residues (e.g. NEP), else the
+    // element radius. rust-sasa only reads custom radii from a file or from the occupancy.
+    let radii = naccess_radii();
+    for residue in pdbtbx_struct.residues_mut() {
+        let resname = residue.name().unwrap_or_default().to_string();
+        for atom in residue.atoms_mut() {
+            let radius = radii
+                .get(&(resname.as_str(), atom.name()))
+                .or_else(|| radii.get(&("ANY", atom.name())))
+                .copied()
+                .or_else(|| atom.element().and_then(|e| e.atomic_radius().van_der_waals));
+            if let Some(radius) = radius {
+                let _ = atom.set_occupancy(radius);
+            }
+        }
+    }
+
     let options = SASAOptions::<AtomLevel>::new()
         .with_probe_radius(1.4)
-        .with_n_points(100);
+        .with_n_points(100)
+        .with_read_radii_from_occupancy(true);
 
     let atom_sasa = options
         .process(&pdbtbx_struct)
@@ -193,9 +254,10 @@ pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
         // if let Some(rel_asa)  =
         match REL_ASA.iter().find(|(name, _)| *name == resname) {
             Some(rel_asa) => {
-                let rel_sasa_bb = (e_res.sasa_bb / rel_asa.1.bb) * 100_f64;
-                let rel_sasa_sc = (e_res.sasa_sc / rel_asa.1.sc) * 100_f64;
-                let rel_total = (e_res.sasa_bb + e_res.sasa_sc / rel_asa.1.total) * 100_f64;
+                // Fractions (0-1), as the cutoffs of the `Interactor`
+                let rel_sasa_bb = e_res.sasa_bb / rel_asa.1.bb;
+                let rel_sasa_sc = e_res.sasa_sc / rel_asa.1.sc;
+                let rel_total = (e_res.sasa_bb + e_res.sasa_sc) / rel_asa.1.total;
 
                 e_res.rel_sasa_bb = rel_sasa_bb;
                 e_res.rel_sasa_sc = rel_sasa_sc;
@@ -574,5 +636,45 @@ mod test {
         let extended_residues = calculate_sasa(pdb);
 
         assert_eq!(extended_residues.len(), 116);
+    }
+
+    #[test]
+    fn test_calculate_sasa_hydrogens_hetero() {
+        let pdb = structure::load_pdb("tests/data/prot_ligand.pdb").unwrap();
+        let extended_residues = calculate_sasa(pdb);
+
+        assert_eq!(extended_residues.len(), 2);
+    }
+
+    #[test]
+    fn test_calculate_sasa_hydrogens_without_elements() {
+        let leu = std::fs::read_to_string("tests/data/leu_normal_lines.pdb").unwrap();
+        let leu: String = leu.lines().map(|l| format!("{}\n", &l[..66])).collect();
+        let with_hg =
+            format!("{leu}ATOM      9  HG  LEU A 929      30.078  -6.176  14.844  1.00 28.52\n");
+
+        let sasa = calculate_sasa(structure::load_pdb_from_content(&leu).unwrap());
+        let sasa_hg = calculate_sasa(structure::load_pdb_from_content(&with_hg).unwrap());
+
+        assert_eq!(sasa[0].sasa_sc, sasa_hg[0].sasa_sc);
+    }
+
+    #[test]
+    fn test_calculate_sasa_modified_residue() {
+        // NEP CG is of type C_CAR in naccess.config
+        assert_eq!(naccess_radii()[&("NEP", "CG")], 1.76);
+
+        let mut pdb = structure::load_pdb("tests/data/complex.pdb").unwrap();
+        pdb.conformers_mut()
+            .find(|c| c.name() == "HIS")
+            .unwrap()
+            .set_name("NEP");
+        let extended_residues = calculate_sasa(pdb);
+
+        let nep = extended_residues
+            .iter()
+            .find(|r| r.residue.name() == Some("NEP"))
+            .unwrap();
+        assert!(nep.sasa_bb + nep.sasa_sc > 0.0);
     }
 }
