@@ -632,6 +632,16 @@ pub fn get_atoms_from_resnumbers(pdb: &PDB, selection: &[isize]) -> Vec<Atom> {
         .collect()
 }
 
+/// Whether an atom is a hydrogen. Without an element column, pdbtbx guesses e.g. Hg for the HG
+/// hydrogen, so names starting with H, or a digit, are also taken as hydrogens in ATOM records.
+pub fn is_hydrogen(atom: &Atom) -> bool {
+    atom.element() == Some(&Element::H)
+        || (!atom.hetero()
+            && atom
+                .name()
+                .starts_with(|c: char| c == 'H' || c.is_ascii_digit()))
+}
+
 /// Loads a PDB structure from a file path
 ///
 /// # Arguments
