@@ -157,8 +157,11 @@ impl Interactor {
     ///
     pub fn set_passive_from_active(&mut self) {
         if let Some(pdb) = &self.pdb {
+            // Neighbours from the heavy atoms only, as in HADDOCK3
+            let mut pdb = pdb.clone();
+            pdb.remove_atoms_by(structure::is_hydrogen);
             let residues =
-                structure::get_residues(pdb, self.active.iter().map(|x| *x as isize).collect());
+                structure::get_residues(&pdb, self.active.iter().map(|x| *x as isize).collect());
 
             let search_cutoff = self.passive_from_active_radius.unwrap_or(6.5);
             let neighbors = structure::neighbor_search(pdb.clone(), residues, search_cutoff);
@@ -1217,5 +1220,24 @@ mod tests {
         interactor.set_pdb(pdb);
 
         assert_eq!(interactor.pdb().as_ref().unwrap().model_count(), 1);
+    }
+
+    #[test]
+    fn test_set_passive_from_active_ignores_hydrogens() {
+        // LEU 929 without elements, its HG hydrogen, and the CA of 930 1.5 A from HG (2.6 A from CG)
+        let leu = std::fs::read_to_string("tests/data/leu_normal_lines.pdb").unwrap();
+        let leu: String = leu.lines().map(|l| format!("{}\n", &l[..66])).collect();
+        let content = format!(
+            "{leu}ATOM      9  HG  LEU A 929      30.078  -6.176  14.844  1.00 28.52\n\
+             ATOM     10  CA  GLY A 930      30.712  -7.146  15.794  1.00 28.52\n"
+        );
+        let mut interactor = Interactor::new(1);
+        interactor.set_pdb(crate::core::structure::load_pdb_from_content(&content).unwrap());
+        interactor.set_active(vec![929]);
+        interactor.set_passive_from_active_radius(2.0);
+
+        interactor.set_passive_from_active();
+
+        assert!(interactor.passive().is_empty());
     }
 }

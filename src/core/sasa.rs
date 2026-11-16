@@ -1,4 +1,5 @@
-use pdbtbx::{Atom, Element, Residue};
+use crate::core::structure;
+use pdbtbx::{Atom, Residue};
 use rust_sasa::options::{AtomLevel, SASAOptions};
 use std::collections::HashMap;
 use std::process;
@@ -150,16 +151,8 @@ pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
     // ================================================================================
     // Calculate the SASA of each atom
 
-    // rust-sasa skips hydrogens and hetero atoms, remove them so its values match the atoms.
-    // Without an element column, pdbtbx guesses e.g. Hg for the HG hydrogen, so in the remaining
-    // (ATOM) records also take names starting with H, or a digit, as hydrogens.
-    pdbtbx_struct.remove_atoms_by(|atom| {
-        atom.element() == Some(&Element::H)
-            || atom.hetero()
-            || atom
-                .name()
-                .starts_with(|c: char| c == 'H' || c.is_ascii_digit())
-    });
+    // rust-sasa skips hydrogens and hetero atoms, remove them so its values match the atoms
+    pdbtbx_struct.remove_atoms_by(|atom| structure::is_hydrogen(atom) || atom.hetero());
     pdbtbx_struct.remove_empty();
 
     // Use the NACCESS radii of HADDOCK3, which include its modified residues (e.g. NEP), else the
