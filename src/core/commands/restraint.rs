@@ -30,10 +30,13 @@ use crate::*;
 /// 6. Prints the generated AIR table to stdout.
 ///
 pub fn restraint_bodies(
-    pdb: pdbtbx::PDB,
+    mut pdb: pdbtbx::PDB,
     pml: &Option<String>,
     pdb_path: &str,
 ) -> Result<String, Box<dyn Error>> {
+    // Use the first model of an ensemble
+    pdb.remove_models_except(&[0]);
+
     // Find in-contiguous chains
     let bodies = find_bodies(&pdb);
     let mut gaps = create_iter_body_gaps(&bodies);
@@ -125,5 +128,30 @@ assign ( resid 2 and segid A and name CA ) ( resid 8 and segid A and name CA ) 1
             Ok(tbl) => assert_eq!(tbl, expected_tbl),
             Err(_e) => (),
         }
+    }
+
+    #[test]
+    fn test_restraint_bodies_ensemble() {
+        // `gaps.pdb` as first model, shifted by 1 A in x as second model
+        let gaps = std::fs::read_to_string("tests/data/gaps.pdb").unwrap();
+        let shifted: String = gaps
+            .lines()
+            .filter(|l| l.starts_with("ATOM"))
+            .map(|l| {
+                let x: f64 = l[30..38].trim().parse().unwrap();
+                format!("{}{:8.3}{}\n", &l[..30], x + 1.0, &l[38..])
+            })
+            .collect();
+        let content = format!("MODEL        1\n{gaps}ENDMDL\nMODEL        2\n{shifted}ENDMDL\n");
+        let mut opts = pdbtbx::ReadOptions::new();
+        opts.set_format(pdbtbx::Format::Pdb)
+            .set_level(pdbtbx::StrictnessLevel::Loose);
+        let (pdb, _) = opts
+            .read_raw(BufReader::new(Cursor::new(content.into_bytes())))
+            .unwrap();
+        assert_eq!(pdb.model_count(), 2);
+
+        let tbl = restraint_bodies(pdb, &None, "").unwrap();
+        assert_eq!(tbl.matches("assign").count(), 2);
     }
 }

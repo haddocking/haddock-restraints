@@ -682,7 +682,11 @@ pub fn process_pdb_contents(pdb_content: &str) -> Result<PDB, Vec<PDBError>> {
     let reader = BufReader::new(cursor);
 
     match opts.read_raw(reader) {
-        Ok((pdb, _)) => Ok(pdb),
+        Ok((mut pdb, _)) => {
+            // Use the first model of an ensemble
+            pdb.remove_models_except(&[0]);
+            Ok(pdb)
+        }
         Err(e) => Err(e),
     }
 }
@@ -1208,5 +1212,15 @@ ATOM      2  N   ALA A   2       1.000   1.000   1.000
         let filtered = filter_unique_by_atom_j(gaps);
         assert_eq!(filtered.len(), 1); // Single element, should remain
         assert_eq!(filtered[0].atom_j, "B");
+    }
+
+    #[test]
+    fn test_load_pdb_from_content_first_model() {
+        let res = std::fs::read_to_string("tests/data/two_res.pdb").unwrap();
+        let content = format!("MODEL        1\n{res}ENDMDL\nMODEL        2\n{res}ENDMDL\n");
+
+        let pdb = load_pdb_from_content(&content).unwrap();
+
+        assert_eq!(pdb.model_count(), 1);
     }
 }

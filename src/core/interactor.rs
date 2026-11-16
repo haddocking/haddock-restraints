@@ -390,7 +390,9 @@ impl Interactor {
     /// # Arguments
     ///
     /// * `pdb` - The PDB structure to store
-    pub fn set_pdb(&mut self, pdb: PDB) {
+    pub fn set_pdb(&mut self, mut pdb: PDB) {
+        // Use the first model of an ensemble
+        pdb.remove_models_except(&[0]);
         self.pdb = Some(pdb)
     }
 
@@ -1195,5 +1197,16 @@ mod tests {
         let expected = "distance 1-A, (resi 1 and (name CA or name C1') and chain A), (resi 2 and (name CA or name C1') and chain B)\n";
 
         assert_eq!(observed, expected);
+    }
+
+    #[test]
+    fn test_set_pdb_first_model() {
+        let mut pdb = crate::core::structure::load_pdb("tests/data/two_res.pdb").unwrap();
+        pdb.add_model(pdb.model(0).unwrap().clone());
+        let mut interactor = Interactor::new(1);
+
+        interactor.set_pdb(pdb);
+
+        assert_eq!(interactor.pdb().as_ref().unwrap().model_count(), 1);
     }
 }
