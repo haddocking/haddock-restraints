@@ -48,7 +48,7 @@ A minimal configuration file would look like this:
 - `passive_from_active_cutoff`: radius used to search for passive residues around the active (requires structure)
 - `surface_as_passive`: if true, the passive residues are defined based on the surface accessibility of the residues (_requires structure_)
 - `filter_buried`: if true, the buried residues are filtered out (_requires structure_)
-- `filter_buried_cutoff`: the cutoff to consider a residue as buried, default = 0.7 (_requires structure_)
+- `filter_buried_cutoff`: the cutoff to consider a residue as buried (relative SASA of main chain and side chain, 0-1), default = 0.15 (_requires structure_)
 - `target_distance`: the distance to consider two residues as interacting, default = 2.0 (_see Note_)
 - `lower_margin`: the lower bound correction subtracted from the `target_distance` to define the lower distance boundary.
 - `upper_margin`: the upper bound correction added to the target_distance to define the upper distance boundary.
@@ -145,7 +145,7 @@ Optional fields are:
 - `filter_buried_cutoff`
 
   - type: float
-  - description: the cutoff to consider a residue as buried, default = 0.7
+  - description: the cutoff to consider a residue as buried (relative SASA of main chain and side chain, 0-1), default = 0.15
   - requires: `structure`
 
 - `target_distance`
