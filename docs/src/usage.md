@@ -16,3 +16,11 @@ Each subcommand has its own set of options and arguments. The main subcommands a
 - [`unambig-ti`: Generate unambiguous true-interface restraints](./unambig-ti.md)
 
 - [`tbl2pml`: Generate a PyMOL visualization from a `.tbl` file and its PDB(s)](./tbl2pml.md)
+
+## Structures
+
+- Only the first model of a multi-model PDB file (ensemble) is used.
+- The surface accessibility (`filter_buried`, `surface_as_passive`) is computed as in HADDOCK3:
+  - with the NACCESS atom radii of HADDOCK3, which include the modified residues it supports (e.g. NEP, SEP, PTR), and the element radius for other atoms;
+  - hydrogens and `HETATM` records are ignored, also when the file has no element column;
+  - a residue is on the surface when the relative accessibility of its main chain or of its side chain is at least 0.15 (15%).
