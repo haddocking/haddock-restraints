@@ -193,9 +193,10 @@ pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
         // if let Some(rel_asa)  =
         match REL_ASA.iter().find(|(name, _)| *name == resname) {
             Some(rel_asa) => {
-                let rel_sasa_bb = (e_res.sasa_bb / rel_asa.1.bb) * 100_f64;
-                let rel_sasa_sc = (e_res.sasa_sc / rel_asa.1.sc) * 100_f64;
-                let rel_total = (e_res.sasa_bb + e_res.sasa_sc / rel_asa.1.total) * 100_f64;
+                // Fractions (0-1), as the cutoffs of the `Interactor`
+                let rel_sasa_bb = e_res.sasa_bb / rel_asa.1.bb;
+                let rel_sasa_sc = e_res.sasa_sc / rel_asa.1.sc;
+                let rel_total = (e_res.sasa_bb + e_res.sasa_sc) / rel_asa.1.total;
 
                 e_res.rel_sasa_bb = rel_sasa_bb;
                 e_res.rel_sasa_sc = rel_sasa_sc;

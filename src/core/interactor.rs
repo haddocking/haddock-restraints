@@ -175,7 +175,7 @@ impl Interactor {
     /// This method performs the following steps:
     /// 1. Opens the PDB file specified in the `structure` field.
     /// 2. Calculates the SASA for all residues in the structure.
-    /// 3. Identifies surface residues (those with relative SASA > 0.7) on the same chain as the interactor.
+    /// 3. Identifies surface residues (main-chain or side-chain relative SASA >= 0.15) on the same chain as the interactor.
     /// 4. Adds these surface residues to the passive set.
     ///
     /// # Panics
@@ -197,16 +197,15 @@ impl Interactor {
     ///
     /// # Note
     ///
-    /// The threshold for considering a residue as "surface" is set to 0.7 relative SASA.
-    /// This value may need to be adjusted based on specific requirements.
+    /// The threshold for considering a residue as "surface" is 0.15 relative SASA, as in HADDOCK3.
     pub fn set_surface_as_passive(&mut self) {
         if let Some(pdb) = &self.pdb {
             let sasa = sasa::calculate_sasa(pdb.clone());
 
             // Add these neighbors to the passive set
             sasa.iter().for_each(|r| {
-                // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
-                if r.rel_sasa_total > 0.7 && r.chain == self.chain {
+                // Surface as in HADDOCK3: main chain or side chain at least 15% accessible
+                if r.rel_sasa_bb.max(r.rel_sasa_sc) >= 0.15 && r.chain == self.chain {
                     self.passive.insert(r.residue.serial_number() as i16);
                 }
             });
@@ -240,17 +239,17 @@ impl Interactor {
     ///
     /// # Note
     ///
-    /// The default threshold for considering a residue as "buried" is set to 0.7 relative SASA.
+    /// A residue is buried when both its main-chain and side-chain relative SASA are below the
+    /// cutoff, 0.15 by default as in HADDOCK3.
     /// This can be customized by setting the `filter_buried_cutoff` field of the `Interactor`.
     pub fn remove_buried_residues(&mut self) {
         if let Some(pdb) = &self.pdb {
             let sasa = sasa::calculate_sasa(pdb.clone());
 
-            let sasa_cutoff = self.filter_buried_cutoff.unwrap_or(0.7);
+            let sasa_cutoff = self.filter_buried_cutoff.unwrap_or(0.15);
 
             sasa.iter().for_each(|r| {
-                // If the `rel_sasa_total` is more than 0.7 then add it to the passive set
-                if r.rel_sasa_total < sasa_cutoff && r.chain == self.chain {
+                if r.rel_sasa_bb.max(r.rel_sasa_sc) < sasa_cutoff && r.chain == self.chain {
                     // This residue is not accessible, remove it from the passive and active sets
                     self.passive.remove(&(r.residue.serial_number() as i16));
                     self.active.remove(&(r.residue.serial_number() as i16));
@@ -897,10 +896,10 @@ mod tests {
         // the expected list below, you should visually inspect if the residues should be exposed
         // or not and also you can run freesasa as a tie-breaker `freesasa --format=rsa tests/data/complex.pdb`
         // and then decide if the residue should be in the list below or not
+        // Same as HADDOCK3 `librestraints.get_surface_resids` on this file
         let expected = HashSet::from([
-            929, 930, 931, 932, 933, 934, 935, 936, 938, 940, 941, 942, 943, 944, 945, 946, 947,
-            948, 950, 951, 952, 953, 954, 955, 956, 957, 958, 959, 960, 961, 962, 964, 965, 966,
-            967, 968, 969, 970, 971, 972,
+            929, 930, 931, 932, 933, 934, 935, 938, 940, 941, 942, 943, 944, 945, 947, 948, 950,
+            951, 954, 955, 956, 957, 958, 959, 961, 962, 964, 965, 966, 968, 969, 970, 971, 972,
         ]);
 
         let in_expected_and_not_in_observed: HashSet<_> =
