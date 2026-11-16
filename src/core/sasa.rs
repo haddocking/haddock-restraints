@@ -150,8 +150,16 @@ pub fn calculate_sasa(mut pdbtbx_struct: pdbtbx::PDB) -> Vec<ExtendedRes> {
     // ================================================================================
     // Calculate the SASA of each atom
 
-    // rust-sasa skips hydrogens and hetero atoms, remove them so its values match the atoms
-    pdbtbx_struct.remove_atoms_by(|atom| atom.element() == Some(&Element::H) || atom.hetero());
+    // rust-sasa skips hydrogens and hetero atoms, remove them so its values match the atoms.
+    // Without an element column, pdbtbx guesses e.g. Hg for the HG hydrogen, so in the remaining
+    // (ATOM) records also take names starting with H, or a digit, as hydrogens.
+    pdbtbx_struct.remove_atoms_by(|atom| {
+        atom.element() == Some(&Element::H)
+            || atom.hetero()
+            || atom
+                .name()
+                .starts_with(|c: char| c == 'H' || c.is_ascii_digit())
+    });
     pdbtbx_struct.remove_empty();
 
     // Use the NACCESS radii of HADDOCK3, which include its modified residues (e.g. NEP), else the
@@ -636,6 +644,19 @@ mod test {
         let extended_residues = calculate_sasa(pdb);
 
         assert_eq!(extended_residues.len(), 2);
+    }
+
+    #[test]
+    fn test_calculate_sasa_hydrogens_without_elements() {
+        let leu = std::fs::read_to_string("tests/data/leu_normal_lines.pdb").unwrap();
+        let leu: String = leu.lines().map(|l| format!("{}\n", &l[..66])).collect();
+        let with_hg =
+            format!("{leu}ATOM      9  HG  LEU A 929      30.078  -6.176  14.844  1.00 28.52\n");
+
+        let sasa = calculate_sasa(structure::load_pdb_from_content(&leu).unwrap());
+        let sasa_hg = calculate_sasa(structure::load_pdb_from_content(&with_hg).unwrap());
+
+        assert_eq!(sasa[0].sasa_sc, sasa_hg[0].sasa_sc);
     }
 
     #[test]
